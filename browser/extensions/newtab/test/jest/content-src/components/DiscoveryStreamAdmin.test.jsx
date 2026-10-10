@@ -527,6 +527,7 @@ describe("<DiscoveryStreamAdminUI>", () => {
         "newtab-custom-widget-stocks-toggle2": "Finance",
         "newtab-custom-widget-timer-toggle": "Timer",
         "newtab-custom-widget-weather-toggle": "Weather",
+        "newtab-custom-widget-wrexham-toggle": "Wrexham AFC",
       };
       document.l10n = {
         formatMessages: async keys =>
@@ -540,7 +541,7 @@ describe("<DiscoveryStreamAdminUI>", () => {
         [...container.querySelectorAll('[id^="widgets.system."]')].map(toggle =>
           toggle.getAttribute("data-l10n-id")
         );
-      await waitFor(() => expect(order()).toHaveLength(10));
+      await waitFor(() => expect(order()).toHaveLength(11));
 
       // Written by hand so the test does not mirror the sort.
       expect(order()).toEqual([
@@ -554,6 +555,7 @@ describe("<DiscoveryStreamAdminUI>", () => {
         "newtab-custom-widget-search-toggle",
         "newtab-custom-widget-timer-toggle",
         "newtab-custom-widget-weather-toggle",
+        "newtab-custom-widget-wrexham-toggle",
       ]);
     });
 

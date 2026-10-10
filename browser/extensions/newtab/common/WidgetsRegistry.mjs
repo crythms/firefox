@@ -177,6 +177,10 @@ export const PREF_WIDGETS_HOROSCOPES_ENABLED = "widgets.horoscopes.enabled";
 export const PREF_HOROSCOPES_SIZE = "widgets.horoscopes.size";
 export const PREF_WIDGETS_SYSTEM_HOROSCOPES_ENABLED =
   "widgets.system.horoscopes.enabled";
+export const PREF_WIDGETS_WREXHAM_ENABLED = "widgets.wrexham.enabled";
+export const PREF_WREXHAM_SIZE = "widgets.wrexham.size";
+export const PREF_WIDGETS_SYSTEM_WREXHAM_ENABLED =
+  "widgets.system.wrexham.enabled";
 
 /**
  * @typedef {object} WidgetRegistryEntry
@@ -407,6 +411,26 @@ export const WIDGET_REGISTRY = [
     widgetsSettingsVisibleKey: "horoscopesVisible",
     widgetsSettingsEnabledKey: "horoscopesEnabled",
     trainhopNamespace: "widgetHoroscopes",
+  },
+  {
+    id: "wrexham",
+    telemetryName: "wrexham",
+    prefsL10nId: "home-prefs-wrexham-header",
+    customizeL10nId: "newtab-custom-widget-wrexham-toggle",
+    customizeEventSource: "WIDGET_WREXHAM",
+    order: 10,
+    enabledPref: PREF_WIDGETS_WREXHAM_ENABLED,
+    sizePref: PREF_WREXHAM_SIZE,
+    defaultSize: "large",
+    validSizes: ["medium", "large"],
+    hasSidebar: false,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_WREXHAM_ENABLED,
+    trainhopEnabledKey: "wrexhamEnabled",
+    trainhopSizeKey: "wrexhamSize",
+    trainhopSidebarKey: null,
+    widgetsSettingsVisibleKey: "wrexhamVisible",
+    widgetsSettingsEnabledKey: "wrexhamEnabled",
+    trainhopNamespace: "widgetWrexham",
   },
 ];
 

@@ -1312,6 +1312,8 @@ export interface Modules {
   "resource://newtab/lib/Widgets/RecentSearchesFeed.sys.mjs": typeof import("resource://newtab/lib/Widgets/RecentSearchesFeed.sys.mjs"),
   "resource://newtab/lib/Widgets/StocksFeed.sys.mjs": typeof import("resource://newtab/lib/Widgets/StocksFeed.sys.mjs"),
   "resource://newtab/lib/Widgets/TimerFeed.sys.mjs": typeof import("resource://newtab/lib/Widgets/TimerFeed.sys.mjs"),
+  "resource://newtab/lib/Widgets/WrexhamFeed.sys.mjs": typeof import("resource://newtab/lib/Widgets/WrexhamFeed.sys.mjs"),
+  "resource://newtab/lib/Widgets/WrexhamMockData.sys.mjs": typeof import("resource://newtab/lib/Widgets/WrexhamMockData.sys.mjs"),
   "resource://newtab/lib/actors/NewTabAttributionParent.sys.mjs": typeof import("resource://newtab/lib/actors/NewTabAttributionParent.sys.mjs"),
   "resource://nimbus/ExperimentAPI.sys.mjs": typeof import("resource://nimbus/ExperimentAPI.sys.mjs"),
   "resource://nimbus/FeatureManifest.sys.mjs": typeof import("resource://nimbus/FeatureManifest.sys.mjs"),

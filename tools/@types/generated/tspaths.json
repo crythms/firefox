@@ -7063,6 +7063,12 @@
       "resource://newtab/lib/Widgets/TimerFeed.sys.mjs": [
         "../../../browser/extensions/newtab/lib/Widgets/TimerFeed.sys.mjs"
       ],
+      "resource://newtab/lib/Widgets/WrexhamFeed.sys.mjs": [
+        "../../../browser/extensions/newtab/lib/Widgets/WrexhamFeed.sys.mjs"
+      ],
+      "resource://newtab/lib/Widgets/WrexhamMockData.sys.mjs": [
+        "../../../browser/extensions/newtab/lib/Widgets/WrexhamMockData.sys.mjs"
+      ],
       "resource://newtab/lib/actors/NewTabAttributionParent.sys.mjs": [
         "../../../browser/extensions/newtab/lib/actors/NewTabAttributionParent.sys.mjs"
       ],

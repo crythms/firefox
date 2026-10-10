@@ -1,0 +1,253 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+import {
+  PHASES,
+  TABS,
+  getDefaultTab,
+  getMatchClock,
+  getMatchForPhase,
+  getPositionChange,
+  getResultForTeam,
+  getWrexhamPhase,
+  isHalfTime,
+} from "content-src/components/Widgets/Wrexham/wrexhamPhase.mjs";
+
+const HOUR = 60 * 60 * 1000;
+
+// Built from local fields so the tests mean the same in any time zone.
+const localTime = (day, hour, minute = 0) =>
+  new Date(2026, 9, day, hour, minute).getTime();
+
+const match = overrides => ({
+  date: new Date(localTime(10, 15)).toISOString(),
+  status_type: "scheduled",
+  home_team: { key: "DER" },
+  away_team: { key: "WRE" },
+  home_score: null,
+  away_score: null,
+  ended_at: null,
+  ...overrides,
+});
+
+describe("getWrexhamPhase", () => {
+  it("is an off day with no match", () => {
+    expect(getWrexhamPhase(null, localTime(10, 12))).toBe(PHASES.OFFDAY);
+  });
+
+  it("is live while the match is in play, at half time or in extra time", () => {
+    for (const status_type of ["live", "halftime", "extra time"]) {
+      expect(getWrexhamPhase(match({ status_type }), localTime(10, 16))).toBe(
+        PHASES.LIVE
+      );
+    }
+  });
+
+  it("is prematch when the match kicks off later the same local day", () => {
+    expect(getWrexhamPhase(match(), localTime(10, 0, 1))).toBe(PHASES.PREMATCH);
+  });
+
+  it("is an off day when the match is on a later day", () => {
+    expect(getWrexhamPhase(match(), localTime(9, 23, 59))).toBe(PHASES.OFFDAY);
+  });
+
+  it("holds the result for the rest of the day the match ended", () => {
+    const finished = match({
+      status_type: "past",
+      ended_at: new Date(localTime(10, 17)).toISOString(),
+    });
+    expect(getWrexhamPhase(finished, localTime(10, 23, 30))).toBe(
+      PHASES.FULLTIME
+    );
+    expect(getWrexhamPhase(finished, localTime(11, 0, 30))).toBe(PHASES.OFFDAY);
+  });
+
+  it("holds a late result past midnight for the minimum hold", () => {
+    const late = match({
+      status_type: "past",
+      ended_at: new Date(localTime(10, 23)).toISOString(),
+    });
+    expect(getWrexhamPhase(late, localTime(11, 1))).toBe(PHASES.FULLTIME);
+    expect(getWrexhamPhase(late, localTime(11, 2, 1))).toBe(PHASES.OFFDAY);
+  });
+
+  it("still accepts final for a finished match", () => {
+    const finished = match({
+      status_type: "final",
+      ended_at: new Date(localTime(10, 17)).toISOString(),
+    });
+    expect(getWrexhamPhase(finished, localTime(10, 18))).toBe(PHASES.FULLTIME);
+  });
+
+  it("uses the last update as the final whistle when there's no ended_at", () => {
+    const finished = match({
+      status_type: "past",
+      updated: localTime(10, 23) / 1000,
+    });
+    expect(getWrexhamPhase(finished, localTime(11, 1))).toBe(PHASES.FULLTIME);
+    expect(getWrexhamPhase(finished, localTime(11, 2, 1))).toBe(PHASES.OFFDAY);
+  });
+
+  it("works out the final whistle from kickoff when the data lacks it", () => {
+    const finished = match({
+      date: new Date(localTime(10, 22)).toISOString(),
+      status_type: "past",
+    });
+    // Kickoff plus 115 minutes is 23:55, so 2am is inside the hold.
+    expect(getWrexhamPhase(finished, localTime(11, 2))).toBe(PHASES.FULLTIME);
+  });
+
+  it("is an off day for a postponed match", () => {
+    expect(
+      getWrexhamPhase(match({ status_type: "postponed" }), localTime(10, 12))
+    ).toBe(PHASES.OFFDAY);
+  });
+
+  it("is an off day when a scheduled match is postponed or cancelled", () => {
+    for (const status of ["Postponed", "Canceled", "Cancelled"]) {
+      expect(
+        getWrexhamPhase(
+          match({ status_type: "scheduled", status }),
+          localTime(10, 12)
+        )
+      ).toBe(PHASES.OFFDAY);
+    }
+  });
+
+  it("keeps a delayed kickoff on matchday", () => {
+    for (const status_type of ["scheduled", "live"]) {
+      expect(
+        getWrexhamPhase(
+          match({ status_type, status: "Delayed" }),
+          localTime(10, 15, 10)
+        )
+      ).toBe(PHASES.PREMATCH);
+    }
+  });
+
+  it("treats a delay once play has started as live", () => {
+    expect(
+      getWrexhamPhase(
+        match({
+          status_type: "live",
+          status: "Delayed",
+          home_score: 0,
+          away_score: 1,
+        }),
+        localTime(10, 16)
+      )
+    ).toBe(PHASES.LIVE);
+  });
+});
+
+describe("isHalfTime", () => {
+  it("reads half time from the Break status", () => {
+    expect(isHalfTime(match({ status_type: "live", status: "Break" }))).toBe(
+      true
+    );
+    expect(
+      isHalfTime(match({ status_type: "live", status: "In Progress" }))
+    ).toBe(false);
+  });
+
+  it("still accepts a halftime status_type", () => {
+    expect(isHalfTime(match({ status_type: "halftime" }))).toBe(true);
+  });
+});
+
+describe("getMatchClock", () => {
+  it("passes the clock through, including stoppage time", () => {
+    expect(getMatchClock(match({ clock: "67" }))).toBe("67");
+    expect(getMatchClock(match({ clock: "90+3" }))).toBe("90+3");
+  });
+
+  it("is null before kickoff or without a clock", () => {
+    expect(getMatchClock(match({ clock: "0" }))).toBeNull();
+    expect(getMatchClock(match({ clock: "" }))).toBeNull();
+    expect(getMatchClock(match())).toBeNull();
+    expect(getMatchClock(match({ clock: 67 }))).toBeNull();
+  });
+});
+
+describe("getDefaultTab", () => {
+  it("opens on the match on matchday and the table otherwise", () => {
+    expect(getDefaultTab(PHASES.PREMATCH)).toBe(TABS.MATCH);
+    expect(getDefaultTab(PHASES.LIVE)).toBe(TABS.MATCH);
+    expect(getDefaultTab(PHASES.FULLTIME)).toBe(TABS.MATCH);
+    expect(getDefaultTab(PHASES.OFFDAY)).toBe(TABS.TABLE);
+  });
+});
+
+describe("getMatchForPhase", () => {
+  const data = { focus_match: { id: 1 }, next_match: { id: 2 } };
+
+  it("shows the next match on an off day", () => {
+    expect(getMatchForPhase(data, PHASES.OFFDAY)).toBe(data.next_match);
+  });
+
+  it("shows today's match on matchday", () => {
+    expect(getMatchForPhase(data, PHASES.LIVE)).toBe(data.focus_match);
+  });
+
+  it("copes with no data", () => {
+    expect(getMatchForPhase(null, PHASES.OFFDAY)).toBeNull();
+  });
+});
+
+describe("getResultForTeam", () => {
+  it("reads the result from the team's side", () => {
+    const scored = match({ home_score: 1, away_score: 2 });
+    expect(getResultForTeam(scored, "WRE")).toBe("win");
+    expect(getResultForTeam(scored, "DER")).toBe("loss");
+    expect(
+      getResultForTeam(match({ home_score: 0, away_score: 0 }), "WRE")
+    ).toBe("draw");
+  });
+
+  it("is null without a score or for a team that didn't play", () => {
+    expect(getResultForTeam(match(), "WRE")).toBeNull();
+    expect(
+      getResultForTeam(match({ home_score: 1, away_score: 0 }), "MID")
+    ).toBeNull();
+  });
+});
+
+describe("getPositionChange", () => {
+  const row = (position, previous_position) => ({
+    position,
+    previous_position,
+    team: { key: "WRE" },
+  });
+
+  it("says which way the team moved", () => {
+    expect(getPositionChange([row(6, 7)], "WRE")).toEqual({
+      position: 6,
+      direction: "up",
+    });
+    expect(getPositionChange([row(8, 7)], "WRE").direction).toBe("down");
+    expect(getPositionChange([row(7, 7)], "WRE").direction).toBe("same");
+  });
+
+  it("is null without a previous position to compare", () => {
+    expect(getPositionChange([row(6, undefined)], "WRE")).toBeNull();
+    expect(getPositionChange([row(6, null)], "WRE")).toBeNull();
+  });
+
+  it("is null when the team isn't in the table", () => {
+    expect(getPositionChange([row(1, 1)], "MID")).toBeNull();
+    expect(getPositionChange(undefined, "WRE")).toBeNull();
+  });
+});
+
+describe("hold window", () => {
+  it("is at least three hours", () => {
+    const late = match({
+      status_type: "past",
+      ended_at: new Date(localTime(10, 23, 59)).toISOString(),
+    });
+    expect(getWrexhamPhase(late, localTime(10, 23, 59) + 3 * HOUR - 1)).toBe(
+      PHASES.FULLTIME
+    );
+  });
+});

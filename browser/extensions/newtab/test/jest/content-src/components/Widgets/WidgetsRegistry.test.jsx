@@ -208,6 +208,7 @@ describe("getWidgetOrder", () => {
       "stocks",
       "recentSearches",
       "horoscopes",
+      "wrexham",
     ]);
   });
 
@@ -223,6 +224,7 @@ describe("getWidgetOrder", () => {
       "stocks",
       "recentSearches",
       "horoscopes",
+      "wrexham",
     ]);
   });
 
@@ -238,6 +240,7 @@ describe("getWidgetOrder", () => {
       "stocks",
       "recentSearches",
       "horoscopes",
+      "wrexham",
     ]);
   });
 
@@ -260,6 +263,7 @@ describe("getWidgetOrder", () => {
       "stocks",
       "recentSearches",
       "horoscopes",
+      "wrexham",
     ]);
     expect(result.length).toBe(registryIds.length);
   });
@@ -286,6 +290,7 @@ describe("resolveWidgetOrder", () => {
       "stocks",
       "recentSearches",
       "horoscopes",
+      "wrexham",
     ]);
   });
 
@@ -306,6 +311,7 @@ describe("resolveWidgetOrder", () => {
       "stocks",
       "recentSearches",
       "horoscopes",
+      "wrexham",
     ]);
   });
 
@@ -326,6 +332,7 @@ describe("resolveWidgetOrder", () => {
       "stocks",
       "recentSearches",
       "horoscopes",
+      "wrexham",
     ]);
   });
 });
@@ -1056,6 +1063,7 @@ describe("WIDGET_REGISTRY customize panel fields", () => {
     stocks: "WIDGET_STOCKS",
     recentSearches: "WIDGET_RECENT_SEARCHES",
     horoscopes: "WIDGET_HOROSCOPES",
+    wrexham: "WIDGET_WREXHAM",
   };
 
   it("gives every active entry a customizeL10nId", () => {

@@ -65,6 +65,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   WallpaperFeed: "resource://newtab/lib/Wallpapers/WallpaperFeed.sys.mjs",
   WeatherFeed: "resource://newtab/lib/WeatherFeed.sys.mjs",
   WebNotificationsFeed: "resource://newtab/lib/WebNotificationsFeed.sys.mjs",
+  WrexhamFeed: "resource://newtab/lib/Widgets/WrexhamFeed.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -1884,6 +1885,30 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "widgets.wrexham.enabled",
+    {
+      title: "Enables the Wrexham AFC widget",
+      // Off everywhere. To release organically: add locale-config to firefox.js, switch to marketGate.
+      getValue: () => !marketGateEnabled(),
+    },
+  ],
+  [
+    "widgets.wrexham.interaction",
+    {
+      title:
+        "Boolean flag for determining if a user has interacted with the Wrexham AFC widget",
+      value: false,
+    },
+  ],
+  [
+    "widgets.wrexham.mockScenario",
+    {
+      title:
+        "Dummy data the Wrexham AFC widget shows until it has live data: 'prematch' | 'live' | 'halftime' | 'fulltime' | 'offday'",
+      value: "offday",
+    },
+  ],
+  [
     "widgets.pictureOfTheDay.enabled",
     {
       title: "Enables the picture of the day widget",
@@ -1918,6 +1943,14 @@ export const PREFS_CONFIG = new Map([
     "widgets.system.horoscopes.enabled",
     {
       title: "Enables the horoscopes widget experiment in Nimbus",
+      // Off everywhere. To release organically: add locale-config to firefox.js, switch to marketGate.
+      value: false,
+    },
+  ],
+  [
+    "widgets.system.wrexham.enabled",
+    {
+      title: "Enables the Wrexham AFC widget experiment in Nimbus",
       // Off everywhere. To release organically: add locale-config to firefox.js, switch to marketGate.
       value: false,
     },
@@ -2053,6 +2086,13 @@ export const PREFS_CONFIG = new Map([
     "widgets.horoscopes.size",
     {
       title: "Size of the horoscopes widget (medium or large)",
+      value: "",
+    },
+  ],
+  [
+    "widgets.wrexham.size",
+    {
+      title: "Size of the Wrexham AFC widget (medium or large)",
       value: "",
     },
   ],
@@ -2683,6 +2723,12 @@ const FEEDS_DATA = [
     name: "recentsearchesfeed",
     factory: () => new lazy.RecentSearchesFeed(),
     title: "Handles the data for the Recent Searches widget",
+    value: true,
+  },
+  {
+    name: "wrexhamfeed",
+    factory: () => new lazy.WrexhamFeed(),
+    title: "Handles the data for the Wrexham AFC widget",
     value: true,
   },
   {

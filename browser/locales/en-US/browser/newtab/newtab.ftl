@@ -336,6 +336,10 @@ newtab-custom-widget-search-toggle =
   .label = Search
 newtab-custom-widget-horoscopes-toggle =
   .label = Horoscopes
+# Wrexham AFC is a football (soccer) club. The widget shows its matches and
+# league table.
+newtab-custom-widget-wrexham-toggle =
+  .label = Wrexham AFC
 newtab-custom-widget-section-title = Widgets
 newtab-custom-widget-section-toggle =
     .label = Widgets
@@ -1294,6 +1298,11 @@ home-prefs-search-widget-header =
 home-prefs-horoscopes-header =
     .label = Horoscopes
 
+# Wrexham AFC is a widget on New Tab that shows the football (soccer) club's
+# matches, league table and fixtures.
+home-prefs-wrexham-header =
+    .label = Wrexham AFC
+
 home-prefs-mission-message2 =
     .message = Our sponsors support our mission to build a better web.
 
@@ -1791,6 +1800,160 @@ newtab-horoscopes-widget-open-menu-button =
 
 # Context menu item linking to more information about the widget.
 newtab-horoscopes-menu-learn-more = Learn more
+
+## Strings for the Wrexham AFC widget. Wrexham AFC is a football (soccer)
+## club; the widget shows its matches, its league table and the league's
+## fixtures. Team, competition and venue names come from the data and are not
+## localized.
+
+# Widget heading; also the widget's accessible name.
+newtab-wrexham-widget-title = Wrexham
+
+# Tooltip and screen reader label for the icon-only button that opens the
+# widget's menu.
+newtab-wrexham-widget-open-menu-button =
+    .title = Open Wrexham AFC menu
+    .aria-label = Open Wrexham AFC menu
+
+# Context menu item linking to more information about the widget.
+newtab-wrexham-menu-learn-more = Learn more
+
+newtab-wrexham-widget-tab-match = Match
+newtab-wrexham-widget-tab-table = Table
+newtab-wrexham-widget-tab-fixtures = Fixtures
+
+## Status badges in the widget header.
+
+# Shown on the day of a match, before kickoff.
+newtab-wrexham-widget-badge-matchday = Matchday
+newtab-wrexham-widget-badge-live = Live
+# Variables:
+#   $clock (String) - The minute of the match being played, like 67, or 90+3
+#   in stoppage time.
+newtab-wrexham-widget-badge-live-clock = Live { $clock }’
+newtab-wrexham-widget-badge-half-time = Half time
+newtab-wrexham-widget-badge-full-time = Full time
+
+## Match tab
+## Variables:
+##   $date (Date) - The kickoff time of the match.
+
+# Variables:
+#   $venue (String) - The stadium the match is played at.
+newtab-wrexham-widget-match-meta = { DATETIME($date, weekday: "short", month: "short", day: "numeric") } · { $venue }
+newtab-wrexham-widget-match-date = { DATETIME($date, weekday: "short", month: "short", day: "numeric") }
+# Placed between the two teams before a match starts, as in "Derby County v Wrexham".
+newtab-wrexham-widget-versus = v
+# Variables:
+#   $home (Number) - Goals scored by the home team.
+#   $away (Number) - Goals scored by the away team.
+newtab-wrexham-widget-score = { $home }–{ $away }
+# Variables:
+#   $clock (String) - The minute of the match being played, like 67, or 90+3
+#   in stoppage time.
+newtab-wrexham-widget-clock = { $clock }’
+newtab-wrexham-widget-half-time = Half time
+# Variables:
+#   $player (String) - The name of the player who scored.
+#   $minute (Number) - The minute the goal was scored in.
+newtab-wrexham-widget-goal = { $player } { $minute }’
+newtab-wrexham-widget-result-win = Win
+newtab-wrexham-widget-result-draw = Draw
+newtab-wrexham-widget-result-loss = Loss
+# Kickoff time shown in the user's own time zone.
+newtab-wrexham-widget-kickoff-label = Kick off, your time
+newtab-wrexham-widget-kickoff-time = { DATETIME($date, hour: "numeric", minute: "2-digit") }
+# Variables:
+#   $timeZone (String) - The name of the user's time zone, like "Eastern Time".
+newtab-wrexham-widget-kickoff-zone = { $timeZone }
+# Variables:
+#   $timeZone (String) - The name of the user's time zone, like "Eastern Time".
+#   $clubTime (Date) - The kickoff time as the clock in Wrexham, Wales, shows it.
+newtab-wrexham-widget-kickoff-zone-club = { $timeZone } · { DATETIME($clubTime, hour: "numeric", minute: "2-digit") } in Wrexham
+newtab-wrexham-widget-no-match = No upcoming match yet
+
+## Where Wrexham sits in the league table after a match.
+## Variables:
+##   $position (Number) - The club's place in the table, like 6.
+##   $league (String) - The name of the league, like "Championship".
+
+newtab-wrexham-widget-position-up =
+    { NUMBER($position, type: "ordinal") ->
+        [one] Up to { $position }st in the { $league }
+        [two] Up to { $position }nd in the { $league }
+        [few] Up to { $position }rd in the { $league }
+       *[other] Up to { $position }th in the { $league }
+    }
+newtab-wrexham-widget-position-down =
+    { NUMBER($position, type: "ordinal") ->
+        [one] Down to { $position }st in the { $league }
+        [two] Down to { $position }nd in the { $league }
+        [few] Down to { $position }rd in the { $league }
+       *[other] Down to { $position }th in the { $league }
+    }
+newtab-wrexham-widget-position-same =
+    { NUMBER($position, type: "ordinal") ->
+        [one] Stays { $position }st in the { $league }
+        [two] Stays { $position }nd in the { $league }
+        [few] Stays { $position }rd in the { $league }
+       *[other] Stays { $position }th in the { $league }
+    }
+
+## Table tab. Column headings are abbreviated to fit; .title and .aria-label
+## hold the full name.
+
+# The accessible name of the league table.
+# Variables:
+#   $league (String) - The name of the league, like "Championship".
+newtab-wrexham-widget-table =
+    .aria-label = { $league } table
+newtab-wrexham-widget-table-position = #
+    .title = Position
+    .aria-label = Position
+newtab-wrexham-widget-table-team = Team
+newtab-wrexham-widget-table-played = P
+    .title = Played
+    .aria-label = Played
+newtab-wrexham-widget-table-goal-difference = GD
+    .title = Goal difference
+    .aria-label = Goal difference
+newtab-wrexham-widget-table-points = Pts
+    .title = Points
+    .aria-label = Points
+newtab-wrexham-widget-no-table = The table will show here once it’s available
+
+# The accessible name of the link in the smaller widget size, which shows
+# Wrexham's row of the league table and opens the full table on the club's
+# website.
+# Variables:
+#   $position (Number) - The club's place in the table, like 7.
+#   $points (Number) - The club's points, like 18.
+#   $league (String) - The name of the league, like "Championship".
+newtab-wrexham-widget-compact-table =
+    .aria-label =
+        { $points ->
+            [one] Wrexham, position { $position } in the { $league }, { $points } point. Full table
+           *[other] Wrexham, position { $position } in the { $league }, { $points } points. Full table
+        }
+
+## Fixtures tab
+## Variables:
+##   $date (Date) - The kickoff time of a match.
+
+# Variables:
+#   $number (Number) - Which round of the season the fixtures belong to, like 12.
+newtab-wrexham-widget-fixtures-heading = Gameweek { $number } · your time
+newtab-wrexham-widget-fixture-day = { DATETIME($date, weekday: "short", month: "short", day: "numeric") }
+newtab-wrexham-widget-fixture-time = { DATETIME($date, hour: "numeric", minute: "2-digit") }
+newtab-wrexham-widget-no-fixtures = Fixtures will show here once they’re announced
+
+## Links to pages on the club’s website, shown at the bottom of the widget.
+
+newtab-wrexham-widget-link-match-preview = Match preview
+newtab-wrexham-widget-link-match-centre = Live match centre
+newtab-wrexham-widget-link-match-report = Match report
+newtab-wrexham-widget-link-table = Full table
+newtab-wrexham-widget-link-fixtures = Fixtures and results
 
 ## Strings for the navigable panels that new tab content area can be
 ## split into.

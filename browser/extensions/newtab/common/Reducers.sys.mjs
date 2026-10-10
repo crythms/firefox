@@ -307,6 +307,15 @@ export const INITIAL_STATE = {
      */
     engineName: "",
   },
+  Wrexham: {
+    initialized: false,
+    /**
+     * Club, match, table and gameweek data from WrexhamFeed, or null until the
+     * first update. See buildMockData in lib/Widgets/WrexhamMockData.sys.mjs
+     * for the shape.
+     */
+    data: null,
+  },
 };
 
 function App(prevState = INITIAL_STATE.App, action) {
@@ -1291,6 +1300,15 @@ function RecentSearches(prevState = INITIAL_STATE.RecentSearches, action) {
   }
 }
 
+function Wrexham(prevState = INITIAL_STATE.Wrexham, action) {
+  switch (action.type) {
+    case at.WIDGETS_WREXHAM_UPDATE:
+      return { initialized: true, data: action.data };
+    default:
+      return prevState;
+  }
+}
+
 function Ads(prevState = INITIAL_STATE.Ads, action) {
   switch (action.type) {
     case at.ADS_INIT:
@@ -1484,4 +1502,5 @@ export const reducers = {
   PrivacyWidget,
   PictureOfTheDay,
   RecentSearches,
+  Wrexham,
 };

@@ -14,6 +14,7 @@ import { Stocks } from "./Stocks/Stocks";
 import { PictureOfTheDay } from "./PictureOfTheDay/PictureOfTheDay";
 import { RecentSearches } from "./RecentSearches/RecentSearches";
 import { Horoscopes } from "./Horoscopes/Horoscopes";
+import { Wrexham } from "./Wrexham/Wrexham";
 import { WIDGET_REGISTRY, resolveWidgetSize } from "common/WidgetsRegistry.mjs";
 
 const weatherEntry = WIDGET_REGISTRY.find(w => w.id === "weather");
@@ -49,6 +50,7 @@ export const WIDGET_ROW_COMPONENTS = {
   pictureOfTheDay: PictureOfTheDay,
   recentSearches: RecentSearches,
   horoscopes: Horoscopes,
+  wrexham: Wrexham,
 };
 
 export const WIDGET_SIDEBAR_COMPONENTS = {

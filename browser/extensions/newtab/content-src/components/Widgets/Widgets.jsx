@@ -300,6 +300,11 @@ function Widgets({ widgetIds }) {
       prefs,
       widgetsEnabled
     ),
+    wrexham: isWidgetEnabled(
+      WIDGET_REGISTRY.find(w => w.id === "wrexham"),
+      prefs,
+      widgetsEnabled
+    ),
   };
 
   // Given an explicit list, keep only those. Callers wanting every enabled

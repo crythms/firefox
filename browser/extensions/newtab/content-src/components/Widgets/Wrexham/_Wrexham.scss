@@ -1,0 +1,639 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+// The club's colours and the widget's small text size have no design tokens,
+// as in the Stocks and Crossword widgets.
+/* stylelint-disable stylelint-plugin-mozilla/use-design-tokens */
+
+.wrexham {
+  @include widget-base-style;
+
+  --wrexham-red: #C8102E;
+  --wrexham-on-red: white;
+  --wrexham-accent: light-dark(#C8102E, #FF8A9C);
+  --wrexham-font-size-xsmall: 0.8rem;
+  --wrexham-tab-indicator-width: 2px;
+
+  // One property per visual job, so the contrast modes below can each be
+  // overridden here without touching the element rules.
+  --wrexham-header-background: var(--wrexham-red);
+  --wrexham-header-text-color: var(--wrexham-on-red);
+  --wrexham-header-border: none;
+  --wrexham-highlight-background: var(--wrexham-red);
+  --wrexham-highlight-text-color: var(--wrexham-on-red);
+  --wrexham-accent-text-color: var(--wrexham-accent);
+  --wrexham-link-color: var(--wrexham-accent);
+  --wrexham-tab-indicator-color: var(--wrexham-accent);
+  // Has a unit because it is subtracted in calc().
+  --wrexham-tab-border-width: 0px;
+  --wrexham-compact-text-color: var(--text-color);
+  --wrexham-divider-color: var(--border-color);
+  --wrexham-divider-width: 2px;
+  // The card colour is translucent; layer it over the page colour so rows
+  // don't show through the sticky table header.
+  --wrexham-table-header-background:
+    linear-gradient(var(--newtab-background-card), var(--newtab-background-card)),
+    var(--newtab-background-color);
+  --wrexham-matchday-badge-background: #F6C343;
+  --wrexham-matchday-badge-text-color: #15141A;
+  --wrexham-live-badge-background: var(--wrexham-on-red);
+  --wrexham-live-badge-text-color: var(--wrexham-red);
+  --wrexham-filled-badge-border-color: transparent;
+  --wrexham-win-chip-background: light-dark(#0F6B3A, #4CC38A);
+  --wrexham-win-chip-text-color: light-dark(white, #15141A);
+  --wrexham-draw-chip-background: light-dark(#EDEDF0, #42414D);
+  --wrexham-draw-chip-text-color: var(--text-color);
+  --wrexham-loss-chip-background: var(--wrexham-accent);
+  --wrexham-loss-chip-text-color: light-dark(white, #15141A);
+  --wrexham-chip-border: none;
+  --wrexham-team-code-background: light-dark(#EDEDF0, #42414D);
+  --wrexham-team-code-border: none;
+
+  overflow: clip;
+  padding: 0;
+
+  @media (prefers-contrast) {
+    --wrexham-filled-badge-border-color: currentColor;
+    --wrexham-chip-border: var(--border-width) solid currentColor;
+    --wrexham-team-code-border: var(--border-width) solid currentColor;
+    --wrexham-tab-border-width: var(--border-width);
+    --wrexham-divider-width: 3px;
+  }
+
+  @media (forced-colors) {
+    --wrexham-header-background: var(--background-color-canvas);
+    --wrexham-header-text-color: var(--text-color);
+    --wrexham-header-border: var(--border-width) solid var(--border-color);
+    --wrexham-highlight-background: var(--color-accent-primary-selected);
+    --wrexham-highlight-text-color: var(--text-color-accent-primary-selected);
+    --wrexham-accent-text-color: var(--text-color);
+    --wrexham-link-color: var(--link-color);
+    --wrexham-compact-text-color: var(--link-color);
+    --wrexham-tab-indicator-color: var(--border-color-selected);
+    --wrexham-table-header-background: var(--background-color-canvas);
+    --wrexham-matchday-badge-background: var(--background-color-canvas);
+    --wrexham-matchday-badge-text-color: var(--text-color);
+    --wrexham-live-badge-background: var(--background-color-canvas);
+    --wrexham-live-badge-text-color: var(--text-color);
+    --wrexham-filled-badge-border-color: var(--border-color);
+    --wrexham-win-chip-background: var(--background-color-canvas);
+    --wrexham-win-chip-text-color: var(--text-color);
+    --wrexham-draw-chip-background: var(--background-color-canvas);
+    --wrexham-draw-chip-text-color: var(--text-color);
+    --wrexham-loss-chip-background: var(--background-color-canvas);
+    --wrexham-loss-chip-text-color: var(--text-color);
+    --wrexham-chip-border: var(--border-width) solid var(--border-color);
+    --wrexham-team-code-background: var(--background-color-canvas);
+    --wrexham-team-code-border: var(--border-width) solid var(--border-color);
+  }
+
+  &.medium-widget {
+    grid-row: span 2;
+  }
+
+  &.large-widget {
+    grid-row: span 4;
+  }
+
+  // Visually hidden but kept in the accessibility tree.
+  .sr-only {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+}
+
+.wrexham-header {
+  align-items: center;
+  background-color: var(--wrexham-header-background);
+  border-block-end: var(--wrexham-header-border);
+  color: var(--wrexham-header-text-color);
+  display: flex;
+  flex: none;
+  gap: var(--space-small);
+  padding: var(--space-small) var(--space-medium);
+}
+
+.wrexham-header-crest {
+  block-size: var(--size-item-large);
+  flex: none;
+}
+
+.wrexham-heading {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.wrexham-title {
+  font-size: var(--font-size-large);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.wrexham-competition {
+  font-size: var(--wrexham-font-size-xsmall);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.wrexham-badge {
+  border: var(--border-width) solid currentColor;
+  border-radius: var(--border-radius-small);
+  flex: none;
+  font-size: var(--wrexham-font-size-xsmall);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  padding: var(--space-xxsmall) var(--space-small);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.wrexham-badge-prematch {
+  background-color: var(--wrexham-matchday-badge-background);
+  border-color: var(--wrexham-filled-badge-border-color);
+  color: var(--wrexham-matchday-badge-text-color);
+}
+
+.wrexham-badge-live {
+  background-color: var(--wrexham-live-badge-background);
+  border-color: var(--wrexham-filled-badge-border-color);
+  color: var(--wrexham-live-badge-text-color);
+
+  &::before {
+    background-color: currentColor;
+    border-radius: var(--border-radius-circle);
+    block-size: 6px;
+    content: '';
+    display: inline-block;
+    inline-size: 6px;
+    margin-inline-end: var(--space-xsmall);
+    vertical-align: middle;
+  }
+}
+
+.wrexham-context-menu-wrapper {
+  flex: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wrexham:hover,
+.wrexham:focus-within {
+  .wrexham-context-menu-wrapper {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+// Scoped to the button, not the header: the menu it opens sits inside the
+// header and must keep the default focus ring on its own background.
+.wrexham-context-menu-button {
+  @media (forced-colors: none) {
+    --button-text-color-ghost: var(--wrexham-on-red);
+    --button-text-color-ghost-hover: var(--wrexham-on-red);
+    --button-text-color-ghost-active: var(--wrexham-on-red);
+    --button-text-color-ghost-selected: var(--wrexham-on-red);
+    --button-background-color-ghost-hover: rgb(255 255 255 / 15%);
+    --button-background-color-ghost-active: rgb(255 255 255 / 25%);
+    --button-background-color-ghost-selected: rgb(255 255 255 / 25%);
+    // The default ring has too little contrast on the club red. The token is
+    // composed on :root, so the whole shorthand is overridden.
+    --focus-outline-color: var(--wrexham-on-red);
+    --focus-outline: var(--focus-outline-width) solid var(--wrexham-on-red);
+  }
+
+  @media (prefers-contrast) and (forced-colors: none) {
+    --button-border-color-ghost: currentColor;
+    --button-border-color-ghost-hover: currentColor;
+    --button-border-color-ghost-active: currentColor;
+    --button-border-color-ghost-selected: currentColor;
+  }
+}
+
+.wrexham-tabs {
+  border-block-end: var(--border-width) solid var(--border-color-deemphasized);
+  display: flex;
+  flex: none;
+}
+
+.wrexham-tab {
+  appearance: none;
+  background: none;
+  // No border outside the contrast modes; forced colours would paint a
+  // transparent one. Padding makes up the selected indicator's height.
+  border: var(--wrexham-tab-border-width) solid currentColor;
+  color: var(--text-color-deemphasized);
+  flex: 1;
+  font-size: var(--font-size-small);
+  padding-block: var(--space-xsmall) calc(var(--space-xsmall) + var(--wrexham-tab-indicator-width) - var(--wrexham-tab-border-width));
+  padding-inline: 0;
+
+  // Ghost button tokens, which have their own contrast-mode values.
+  &:not([aria-selected='true']):hover {
+    background-color: var(--button-background-color-ghost-hover);
+    color: var(--button-text-color-ghost-hover);
+  }
+
+  &[aria-selected='true'] {
+    border-block-end: var(--wrexham-tab-indicator-width) solid var(--wrexham-tab-indicator-color);
+    color: var(--text-color);
+    font-weight: var(--font-weight-semibold);
+    padding-block-end: var(--space-xsmall);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    // Inset past the selected indicator so the ring doesn't cover it.
+    outline-offset: calc(-1 * (var(--focus-outline-width) + var(--wrexham-tab-indicator-width)));
+  }
+}
+
+// The panel is the scroll container, so when its content overflows and
+// Firefox makes it a tab stop, focus lands on the named tab panel. The ring is
+// inset because the card clips anything outside it.
+.wrexham-tabpanel {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--space-small) var(--space-medium);
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-inset);
+  }
+}
+
+.wrexham-tabpanel-table {
+  padding: 0;
+}
+
+.wrexham-footer-link {
+  background: url('chrome://global/skin/icons/arrow-right.svg') no-repeat right var(--space-medium) center;
+  border-block-start: var(--border-width) solid var(--border-color-deemphasized);
+  color: var(--wrexham-link-color);
+  flex: none;
+  -moz-context-properties: fill;
+  fill: currentColor;
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-bold);
+  padding: var(--space-small) var(--space-medium);
+  text-decoration: none;
+
+  &:dir(rtl) {
+    background-image: url('chrome://global/skin/icons/arrow-left.svg');
+    background-position: left var(--space-medium) center;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-inset);
+  }
+}
+
+.wrexham-empty {
+  color: var(--text-color-deemphasized);
+  font-size: var(--font-size-small);
+  margin: 0;
+  padding: var(--space-large) var(--space-medium);
+  text-align: center;
+}
+
+// Match tab
+
+.wrexham-match {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xsmall);
+  text-align: center;
+}
+
+.wrexham-match-meta,
+.wrexham-kickoff-label,
+.wrexham-section-label {
+  color: var(--text-color-deemphasized);
+  font-size: var(--wrexham-font-size-xsmall);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.wrexham-match-teams {
+  align-items: center;
+  display: grid;
+  gap: var(--space-small);
+  grid-template-columns: 1fr auto 1fr;
+}
+
+.wrexham-team {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxsmall);
+  min-inline-size: 0;
+}
+
+.wrexham-team-crest {
+  block-size: var(--size-item-large);
+}
+
+.wrexham-team-code {
+  align-items: center;
+  background-color: var(--wrexham-team-code-background);
+  block-size: var(--size-item-large);
+  border: var(--wrexham-team-code-border);
+  border-radius: var(--border-radius-circle);
+  box-sizing: border-box;
+  display: flex;
+  font-size: var(--wrexham-font-size-xsmall);
+  font-weight: var(--font-weight-bold);
+  inline-size: var(--size-item-large);
+  justify-content: center;
+}
+
+// Long names wrap onto a second line rather than being cut short.
+.wrexham-team-name,
+.wrexham-fixture-team {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.wrexham-team-name {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  max-inline-size: 100%;
+}
+
+.wrexham-match-centre {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxsmall);
+}
+
+.wrexham-versus {
+  color: var(--text-color-deemphasized);
+  font-size: var(--font-size-large);
+  font-weight: var(--font-weight-bold);
+}
+
+.wrexham-score {
+  font-size: var(--font-size-xxxlarge);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.wrexham-live-clock {
+  color: var(--wrexham-accent-text-color);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-bold);
+}
+
+.wrexham-result {
+  border: var(--wrexham-chip-border);
+  border-radius: var(--border-radius-small);
+  font-size: var(--wrexham-font-size-xsmall);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  padding: var(--space-xxsmall) var(--space-small);
+  text-transform: uppercase;
+}
+
+.wrexham-result-win {
+  background-color: var(--wrexham-win-chip-background);
+  color: var(--wrexham-win-chip-text-color);
+}
+
+.wrexham-result-draw {
+  background-color: var(--wrexham-draw-chip-background);
+  color: var(--wrexham-draw-chip-text-color);
+}
+
+.wrexham-result-loss {
+  background-color: var(--wrexham-loss-chip-background);
+  color: var(--wrexham-loss-chip-text-color);
+}
+
+.wrexham-kickoff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxsmall);
+  margin-block-start: var(--space-xsmall);
+}
+
+.wrexham-kickoff-time {
+  color: var(--wrexham-accent-text-color);
+  font-size: var(--font-size-xxlarge);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  margin: 0;
+}
+
+.wrexham-kickoff-zone,
+.wrexham-position-line {
+  color: var(--text-color-deemphasized);
+  font-size: var(--wrexham-font-size-xsmall);
+  margin: 0;
+}
+
+.wrexham-goals {
+  border-block-start: var(--border-width) solid var(--border-color-deemphasized);
+  color: var(--text-color-deemphasized);
+  display: grid;
+  font-size: var(--wrexham-font-size-xsmall);
+  gap: var(--space-small);
+  grid-template-columns: 1fr 1fr;
+  padding-block-start: var(--space-xsmall);
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+// Table tab, and the medium size's slice of it
+
+.wrexham-table {
+  border-collapse: collapse;
+  font-size: var(--font-size-small);
+  font-variant-numeric: tabular-nums;
+  inline-size: 100%;
+
+  th,
+  td {
+    padding: var(--space-xsmall);
+    text-align: end;
+    white-space: nowrap;
+  }
+
+  thead th {
+    background: var(--wrexham-table-header-background);
+    color: var(--text-color-deemphasized);
+    font-size: var(--wrexham-font-size-xsmall);
+    font-weight: var(--font-weight-semibold);
+    inset-block-start: 0;
+    letter-spacing: 0.06em;
+    position: sticky;
+    text-transform: uppercase;
+  }
+
+  tbody th {
+    font-weight: inherit;
+  }
+
+  .wrexham-table-position {
+    inline-size: 2em;
+    padding-inline-start: var(--space-medium);
+    text-align: start;
+  }
+
+  // Takes the space the number columns leave, and wraps long names.
+  .wrexham-table-team {
+    inline-size: 100%;
+    max-inline-size: 0;
+    overflow-wrap: anywhere;
+    text-align: start;
+    white-space: normal;
+  }
+
+  th:last-child,
+  td:last-child {
+    padding-inline-end: var(--space-medium);
+  }
+
+  .wrexham-table-points {
+    font-weight: var(--font-weight-bold);
+  }
+}
+
+.wrexham-table-row {
+  border-block-end: var(--border-width) solid var(--border-color-deemphasized);
+}
+
+.wrexham-table-row-divider {
+  border-block-end: var(--wrexham-divider-width) solid var(--wrexham-divider-color);
+}
+
+.wrexham-table-row-highlight {
+  background-color: var(--wrexham-highlight-background);
+  color: var(--wrexham-highlight-text-color);
+  font-weight: var(--font-weight-bold);
+}
+
+// Fixtures tab
+
+.wrexham-fixtures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xsmall);
+}
+
+.wrexham-fixtures-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wrexham-fixture {
+  align-items: center;
+  border-block-end: var(--border-width) solid var(--border-color-deemphasized);
+  display: grid;
+  font-size: var(--font-size-small);
+  gap: var(--space-small);
+  grid-template-columns: 1fr auto 1fr;
+  padding: var(--space-xsmall) var(--space-small);
+}
+
+.wrexham-fixture-highlight {
+  background-color: var(--wrexham-highlight-background);
+  border-radius: var(--border-radius-small);
+  color: var(--wrexham-highlight-text-color);
+  font-weight: var(--font-weight-bold);
+
+  .wrexham-fixture-time {
+    color: inherit;
+  }
+}
+
+.wrexham-fixture-away {
+  text-align: end;
+}
+
+.wrexham-fixture-time {
+  color: var(--text-color-deemphasized);
+  display: flex;
+  flex-direction: column;
+  font-size: var(--wrexham-font-size-xsmall);
+  text-align: center;
+}
+
+// Medium size
+
+.wrexham-compact {
+  color: var(--wrexham-compact-text-color);
+  flex: 1;
+  min-block-size: 0;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-inset);
+  }
+}
+
+.wrexham-compact-match {
+  align-items: center;
+  display: grid;
+  gap: var(--space-small);
+  grid-template-columns: 1fr auto 1fr;
+  padding: var(--space-small) var(--space-medium);
+
+  .wrexham-score {
+    font-size: var(--font-size-xxlarge);
+  }
+}
+
+.wrexham-compact-home {
+  text-align: end;
+}
+
+.wrexham-compact-away {
+  text-align: start;
+}
+
+.wrexham-compact-kickoff {
+  color: var(--wrexham-accent-text-color);
+  font-size: var(--font-size-xlarge);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.wrexham-compact-table {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  // Keeps the inset focus ring off the highlighted row.
+  padding-inline: var(--space-xsmall);
+
+  .wrexham-table thead {
+    display: none;
+  }
+}

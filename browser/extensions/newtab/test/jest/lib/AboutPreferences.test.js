@@ -48,12 +48,14 @@ describe("AboutPreferences Feed", () => {
     "home-prefs-stocks-header2": "Finance",
     "home-prefs-timer-header": "Timer",
     "home-prefs-weather-header-srd": "Weather",
+    "home-prefs-wrexham-header": "Wrexham AFC",
     "home-prefs-fixture-header": "Fixture widget",
   };
 
   // The German, Greek and Japanese labels are Firefox's own translations,
   // apart from the fixture widget's, the Japanese Search label and the
-  // Horoscopes labels, which have no translations yet. The Finance fixtures
+  // Horoscopes and Wrexham AFC labels, which have no translations yet. The
+  // club's name stays in Latin script in every locale. The Finance fixtures
   // reuse the Stocks translations as stand-ins until the renamed message is
   // translated.
   // Übersicht sorts before Uhr only under locale-aware collation; a code
@@ -70,6 +72,7 @@ describe("AboutPreferences Feed", () => {
     "home-prefs-fixture-header": "Übersicht",
     "home-prefs-clocks-header": "Uhr",
     "home-prefs-weather-header-srd": "Wetter",
+    "home-prefs-wrexham-header": "Wrexham AFC",
   };
 
   const GREEK_PREFS_LABELS = {
@@ -83,12 +86,14 @@ describe("AboutPreferences Feed", () => {
     "home-prefs-clocks-header": "Ρολόι",
     "home-prefs-crossword-widget-header": "Σταυρόλεξο",
     "home-prefs-horoscopes-header": "Ωροσκόπια",
+    "home-prefs-wrexham-header": "Wrexham AFC",
   };
 
   // Latin letters sort before kana and kana before kanji under the default
   // collation; the kanji follow radical and stroke order.
   const JAPANESE_PREFS_LABELS = {
     "home-prefs-lists-header": "ToDo リスト",
+    "home-prefs-wrexham-header": "Wrexham AFC",
     "home-prefs-crossword-widget-header": "クロスワードパズル",
     "home-prefs-timer-header": "タイマー",
     "home-prefs-privacy-header": "プライバシー",
@@ -112,6 +117,7 @@ describe("AboutPreferences Feed", () => {
     "recentSearches",
     "focusTimer",
     "weather",
+    "wrexham",
   ];
 
   const GERMAN_ORDER = [
@@ -126,9 +132,11 @@ describe("AboutPreferences Feed", () => {
     "fixtureWidget",
     "clocks",
     "weather",
+    "wrexham",
   ];
 
   const GREEK_ORDER = [
+    "wrexham",
     "recentSearches",
     "focusTimer",
     "privacy",
@@ -143,6 +151,7 @@ describe("AboutPreferences Feed", () => {
 
   const JAPANESE_ORDER = [
     "lists",
+    "wrexham",
     "crossword",
     "focusTimer",
     "privacy",
@@ -167,6 +176,7 @@ describe("AboutPreferences Feed", () => {
     "privacy",
     "recentSearches",
     "weather",
+    "wrexham",
   ];
 
   // The order when every widget sorts under its own id.
@@ -181,6 +191,7 @@ describe("AboutPreferences Feed", () => {
     "recentSearches",
     "stocks",
     "weather",
+    "wrexham",
   ];
 
   // Pushed onto the real registry so tests can prove a new entry needs no
@@ -750,6 +761,7 @@ describe("AboutPreferences Feed", () => {
         { id: "privacy", l10nId: "home-prefs-privacy-header" },
         { id: "recentSearches", l10nId: "home-prefs-search-widget-header" },
         { id: "focusTimer", l10nId: "home-prefs-timer-header" },
+        { id: "wrexham", l10nId: "home-prefs-wrexham-header" },
       ]);
     });
 
@@ -894,7 +906,7 @@ describe("AboutPreferences Feed", () => {
 
       const widgets = group.items.find(i => i.id === "widgets");
       expect(widgets.items.map(i => i.id)).toEqual(GREEK_ORDER);
-      expect(widgets.items.map(i => i.id).indexOf("weather")).toBe(4);
+      expect(widgets.items.map(i => i.id).indexOf("weather")).toBe(5);
     });
 
     it("orders the group by Japanese label, Latin before kana before kanji", () => {
