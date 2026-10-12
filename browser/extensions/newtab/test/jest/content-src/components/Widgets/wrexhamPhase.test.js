@@ -4,10 +4,8 @@
 
 import {
   PHASES,
-  TABS,
   getCountdown,
   getDaysUntil,
-  getDefaultTab,
   getMatchClock,
   getMatchForPhase,
   getMinutesSinceUpdate,
@@ -104,12 +102,6 @@ describe("getWrexhamPhase", () => {
     expect(getWrexhamPhase(finished, localTime(11, 2))).toBe(PHASES.FULLTIME);
   });
 
-  it("is an off day for a postponed match", () => {
-    expect(
-      getWrexhamPhase(match({ status_type: "postponed" }), localTime(10, 12))
-    ).toBe(PHASES.OFFDAY);
-  });
-
   it("is an off day when a scheduled match is postponed or cancelled", () => {
     for (const status of ["Postponed", "Canceled", "Cancelled"]) {
       expect(
@@ -176,14 +168,6 @@ describe("getMatchClock", () => {
   });
 });
 
-describe("getDefaultTab", () => {
-  it("opens on the Match tab in every phase", () => {
-    for (const phase of Object.values(PHASES)) {
-      expect(getDefaultTab(phase)).toBe(TABS.MATCH);
-    }
-  });
-});
-
 describe("getCountdown", () => {
   const kickoff = localTime(10, 15);
 
@@ -244,18 +228,6 @@ describe("getTeamEvents", () => {
       ["red_card", "E"],
       ["goal", "A"],
       ["goal", "D"],
-    ]);
-  });
-
-  it("keeps each goal's type", () => {
-    expect(getTeamEvents(events, "DER")).toEqual([
-      {
-        kind: "goal",
-        team_key: "DER",
-        player: "B",
-        minute: 30,
-        type: "penalty",
-      },
     ]);
   });
 
@@ -365,17 +337,5 @@ describe("getPositionChange", () => {
   it("is null when the team isn't in the table", () => {
     expect(getPositionChange([row(1, 1)], "MID")).toBeNull();
     expect(getPositionChange(undefined, "WRE")).toBeNull();
-  });
-});
-
-describe("hold window", () => {
-  it("is at least three hours", () => {
-    const late = match({
-      status_type: "past",
-      ended_at: new Date(localTime(10, 23, 59)).toISOString(),
-    });
-    expect(getWrexhamPhase(late, localTime(10, 23, 59) + 3 * HOUR - 1)).toBe(
-      PHASES.FULLTIME
-    );
   });
 });

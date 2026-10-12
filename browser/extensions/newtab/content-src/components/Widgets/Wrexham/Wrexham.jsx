@@ -17,7 +17,6 @@ import {
   TAB_ORDER,
   getCountdown,
   getDaysUntil,
-  getDefaultTab,
   getMatchClock,
   getMatchForPhase,
   getMinutesSinceUpdate,
@@ -30,15 +29,9 @@ import {
   isHalfTime,
 } from "./wrexhamPhase.mjs";
 
-// How often the countdown and "Updated" cue refresh while the page is visible.
 const TICK_MS = 30 * 1000;
 
-/**
- * Re-renders on an interval while enabled, so times derived from Date.now()
- * stay current.
- *
- * @param {boolean} enabled
- */
+// Re-renders while enabled so times derived from Date.now() stay current.
 function useTick(enabled) {
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -51,14 +44,11 @@ function useTick(enabled) {
 }
 
 /**
- * Watches the current match for score changes and the final whistle, for the
- * live region and the goal highlight. Nothing fires on the first render, only
- * on changes this page sees.
+ * Watches for goals and the final whistle, for the live region and the score
+ * highlight. Nothing fires on the first render.
  *
- * @param {object|null} match - The current match.
- * @param {string} phase - One of PHASES.
- * @param {string} teamKey - Wrexham's key.
- * @returns {{announcement: object|null, flash: number}}
+ * @returns {{announcement: object|null, flash: number}} flash counts the score
+ *   changes seen.
  */
 function useScoreChanges(match, phase, teamKey) {
   const previous = useRef(null);
@@ -97,7 +87,6 @@ function useScoreChanges(match, phase, teamKey) {
     if (home === prev.home && away === prev.away) {
       return;
     }
-    // Credit the side whose score went up; a correction just reads the score.
     let scorer = null;
     if (home > prev.home && away === prev.away) {
       scorer = args.home;
@@ -131,8 +120,7 @@ const WREXHAM_ENTRY = WIDGET_REGISTRY.find(w => w.id === "wrexham");
 const CREST_URL =
   "chrome://newtab/content/data/content/assets/wrexham/crest.svg";
 
-// Placeholder pages on the club site until the club confirms where each
-// click should land. A match's own `url` wins over LINKS.match.
+// Placeholders until the club confirms where each click should land.
 export const WREXHAM_LINKS = {
   match: "https://www.wrexhamafc.co.uk/fixtures/",
   table: "https://www.wrexhamafc.co.uk/table/",
@@ -141,7 +129,7 @@ export const WREXHAM_LINKS = {
 
 const CLUB_TIME_ZONE = "Europe/London";
 
-// The table draws a line under these places: automatic promotion, play-offs.
+// Automatic promotion and play-off places.
 const TABLE_DIVIDER_POSITIONS = new Set([2, 6]);
 
 const MATCH_LINK_L10N_IDS = {
@@ -151,8 +139,7 @@ const MATCH_LINK_L10N_IDS = {
   [PHASES.OFFDAY]: "newtab-wrexham-widget-link-match-preview",
 };
 
-// Computed direction, not the dir attribute: about:newtab carries none on
-// <html>. Only called from event handlers.
+// about:newtab has no dir attribute on <html>.
 function isRtl() {
   return getComputedStyle(document.documentElement).direction === "rtl";
 }
@@ -173,13 +160,11 @@ function getUtcOffsetMinutes(date, timeZone) {
 }
 
 /**
- * Shifts a time so that, read in the fan's own time zone, it shows what the
- * clock in Wrexham says. Fluent's DATETIME has no time zone option, and this
- * keeps both kickoff times in the same format.
+ * Shifts a time so that, formatted in the fan's time zone, it reads as the
+ * clock in Wrexham. Fluent's DATETIME has no time zone option.
  *
  * @param {number} date - A ms epoch.
- * @returns {number|null} The shifted ms epoch, or null if the fan's clock
- *   already matches Wrexham's.
+ * @returns {number|null} Null if the fan's clock already matches Wrexham's.
  */
 function getClubWallClock(date) {
   const localOffset = -new Date(date).getTimezoneOffset();
@@ -228,14 +213,7 @@ function TeamBlock({ team, teamKey, nameId }) {
   );
 }
 
-/**
- * The score. Keyed by flash count, so each score change remounts it and
- * replays the highlight; the first render doesn't highlight.
- *
- * @param {object} props
- * @param {object} props.match
- * @param {number} [props.flash] - How many score changes this page has seen.
- */
+// Keyed by flash so each score change remounts it and replays the highlight.
 function Score({ match, flash = 0 }) {
   return (
     <span
@@ -284,7 +262,6 @@ function ResultChip({ result }) {
   );
 }
 
-// "v Derby County (away)", from Wrexham's side.
 function OpponentText({ match, teamKey, className }) {
   const side = getOpponent(match, teamKey);
   if (!side) {
@@ -303,7 +280,6 @@ function OpponentText({ match, teamKey, className }) {
   );
 }
 
-// "Tue · in 4 days", in the fan's own time zone.
 function RelativeDay({ date, now, className }) {
   return (
     <span
@@ -341,8 +317,6 @@ function FormStrip({ form }) {
   );
 }
 
-// The Match tab on days without a match: the last result and form, then the
-// next match. Laid out as a label column and a content column.
 function OffdayPanel({ data, teamKey, now }) {
   const last = data.last_match;
   const lastScore = last && getScoreForTeam(last, teamKey);
@@ -457,8 +431,6 @@ function MatchMeta({ match }) {
   );
 }
 
-// "Eastern Time · 3:00 PM in Wrexham", or just the zone name when the fan's
-// clock already matches Wrexham's.
 function KickoffZone({ kickoff }) {
   const clubTime = getClubWallClock(kickoff);
   return (
@@ -477,7 +449,6 @@ function KickoffZone({ kickoff }) {
   );
 }
 
-// "Kicks off in 3h 12m", then the kickoff time in the fan's zone and Wrexham's.
 function Kickoff({ match, now }) {
   const kickoff = Date.parse(match.date);
   const countdown = getCountdown(kickoff, now);
@@ -504,7 +475,6 @@ function Kickoff({ match, now }) {
   );
 }
 
-// "Updated just now" while a match is in play, from Merino's `updated`.
 function UpdatedCue({ match, now }) {
   const minutes = getMinutesSinceUpdate(match, now);
   if (minutes === null) {
@@ -551,8 +521,8 @@ function MatchEvent({ event }) {
   );
 }
 
-// Each team's scorers and red cards sit under that team, and the list is named
-// after it so screen readers don't rely on the column position.
+// Each list is named after its team so screen readers don't rely on the
+// column position.
 function Goals({ match }) {
   if (!match.goals?.length && !match.red_cards?.length) {
     return null;
@@ -666,14 +636,6 @@ function MatchPanel({
   );
 }
 
-/**
- * The league table, or a slice of it.
- *
- * @param {object} props
- * @param {Array<object>} props.rows - Standings rows to show.
- * @param {string} props.teamKey - Wrexham's key, to highlight its row.
- * @param {string} props.leagueName - Names the table for screen readers.
- */
 function StandingsTable({ rows, teamKey, leagueName, ref }) {
   return (
     <table
@@ -787,8 +749,6 @@ function FixtureRow({ match, highlight = false }) {
   );
 }
 
-// Wrexham's own fixture first, then the rest of the round behind a disclosure
-// that starts closed.
 function FixturesPanel({ gameweek, teamKey, leagueName }) {
   if (!gameweek?.matches?.length) {
     return (
@@ -836,8 +796,6 @@ function FixturesPanel({ gameweek, teamKey, leagueName }) {
   );
 }
 
-// The medium size's secondary line on other days: "Last: W 2–1 v Southampton ·
-// 7th, 18 pts". Either half is left out if its data is missing.
 function CompactSummary({ data, teamKey }) {
   const last = data.last_match;
   const score = last && getScoreForTeam(last, teamKey);
@@ -882,8 +840,6 @@ function CompactSummary({ data, teamKey }) {
   );
 }
 
-// The medium size has no tabs: the match on matchday, the next match on other
-// days. The footer below it links to the matching page.
 function CompactView({ data, phase, match, teamKey, now, scoreFlash }) {
   if (phase === PHASES.OFFDAY) {
     const kickoff = match && Date.parse(match.date);
@@ -957,9 +913,6 @@ function CompactView({ data, phase, match, teamKey, now, scoreFlash }) {
 }
 
 /**
- * Wrexham AFC widget: the match on matchday, the Championship table and the
- * next gameweek's fixtures on other days.
- *
  * @param {object} props
  * @param {Function} props.dispatch - Redux dispatch.
  * @param {Function} props.handleUserInteraction - Marks the widget as
@@ -995,10 +948,10 @@ const Wrexham = ({
     (phase !== PHASES.OFFDAY && data?.focus_match?.competition?.name) ||
     data?.league?.name;
 
-  // A tab the user picked stays for the life of the page, so a kickoff or
-  // final whistle never swaps the panel under them.
+  // A picked tab stays for the life of the page, so a kickoff or final whistle
+  // never swaps the panel under the user.
   const [selectedTab, setSelectedTab] = useState(null);
-  const activeTab = selectedTab ?? getDefaultTab(phase);
+  const activeTab = selectedTab ?? TABS.MATCH;
   const tablistRef = useRef(null);
 
   const { impressionRef, recordUserAction } = useWidgetTelemetry({
@@ -1038,7 +991,6 @@ const Wrexham = ({
       const count = TAB_ORDER.length;
       let next;
       if (event.key in offsets) {
-        // Wraps from the last tab to the first and back.
         next =
           (index + offsets[event.key] * (isRtl() ? -1 : 1) + count) % count;
       } else if (event.key === "Home") {
@@ -1091,8 +1043,6 @@ const Wrexham = ({
     handleInteraction();
   };
 
-  // The match link: the next match's preview on other days, otherwise today's
-  // match page. The medium size always uses it.
   const matchFooter = {
     kind: "match",
     href: getMatchLink(match),
@@ -1196,8 +1146,7 @@ const Wrexham = ({
         </div>
       </header>
 
-      {/* Present from the start, so screen readers hear only later changes:
-          goals and the final result. */}
+      {/* Rendered from the start so screen readers announce later changes. */}
       <div
         className="sr-only"
         role="status"

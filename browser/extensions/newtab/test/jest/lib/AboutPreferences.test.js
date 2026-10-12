@@ -55,9 +55,8 @@ describe("AboutPreferences Feed", () => {
   // The German, Greek and Japanese labels are Firefox's own translations,
   // apart from the fixture widget's, the Japanese Search label and the
   // Horoscopes and Wrexham AFC labels, which have no translations yet. The
-  // club's name stays in Latin script in every locale. The Finance fixtures
-  // reuse the Stocks translations as stand-ins until the renamed message is
-  // translated.
+  // Finance fixtures reuse the Stocks translations as stand-ins until the
+  // renamed message is translated.
   // Übersicht sorts before Uhr only under locale-aware collation; a code
   // point comparison would put it after Wetter.
   const GERMAN_PREFS_LABELS = {

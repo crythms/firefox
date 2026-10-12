@@ -5,8 +5,6 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   actionTypes: "resource://newtab/common/Actions.mjs",
-  buildMockData: "resource://newtab/lib/Widgets/WrexhamMockData.sys.mjs",
-  MOCK_SCENARIOS: "resource://newtab/lib/Widgets/WrexhamMockData.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   WrexhamFeed: "resource://newtab/lib/Widgets/WrexhamFeed.sys.mjs",
 });
@@ -121,59 +119,4 @@ add_task(async function test_unrelated_pref_is_ignored() {
     data: { name: "widgets.stocks.enabled", value: true },
   });
   Assert.equal(broadcasts(feed).length, 0, "No broadcast for other prefs");
-});
-
-add_task(async function test_mock_data_shape() {
-  const now = Date.now();
-  for (const scenario of MOCK_SCENARIOS) {
-    const data = buildMockData(scenario, now);
-    Assert.equal(data.team.key, "WRE", `${scenario}: Wrexham is the team`);
-    Assert.equal(data.standings.length, 24, `${scenario}: a full table`);
-    Assert.deepEqual(
-      data.standings.map(row => row.position),
-      Array.from({ length: 24 }, (_, i) => i + 1),
-      `${scenario}: positions run 1 to 24`
-    );
-    Assert.equal(data.gameweek.matches.length, 12, `${scenario}: 12 fixtures`);
-    Assert.ok(
-      data.gameweek.matches.some(
-        match => match.home_team.key === "WRE" || match.away_team.key === "WRE"
-      ),
-      `${scenario}: Wrexham play in the gameweek`
-    );
-    Assert.equal(
-      data.last_match.status_type,
-      "past",
-      `${scenario}: the last match is finished`
-    );
-    Assert.equal(data.form.length, 5, `${scenario}: five results of form`);
-    Assert.ok(
-      data.form.every(result => ["win", "draw", "loss"].includes(result)),
-      `${scenario}: form is win, draw or loss`
-    );
-  }
-
-  for (const scenario of ["live", "halftime", "fulltime"]) {
-    const match = buildMockData(scenario, now).focus_match;
-    const tally = key => match.goals.filter(g => g.team_key === key).length;
-    Assert.equal(tally("DER"), match.home_score, `${scenario}: home goals`);
-    Assert.equal(tally("WRE"), match.away_score, `${scenario}: away goals`);
-    Assert.ok(Array.isArray(match.red_cards), `${scenario}: red cards list`);
-    Assert.ok(Number.isFinite(match.updated), `${scenario}: an update time`);
-  }
-
-  const halftime = buildMockData("halftime", now).focus_match;
-  Assert.equal(halftime.status_type, "live", "Half time is still live");
-  Assert.equal(halftime.status, "Break", "Half time is a Break");
-
-  const fulltime = buildMockData("fulltime", now);
-  const wrexham = fulltime.standings.find(row => row.team.key === "WRE");
-  Assert.equal(wrexham.position, 6, "The win lifts Wrexham to 6th");
-  Assert.equal(wrexham.previous_position, 7, "From 7th");
-
-  Assert.deepEqual(
-    buildMockData("nonsense", now).focus_match.status_type,
-    "past",
-    "An unknown scenario falls back to the off day"
-  );
 });

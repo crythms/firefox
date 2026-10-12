@@ -310,9 +310,8 @@ export const INITIAL_STATE = {
   Wrexham: {
     initialized: false,
     /**
-     * Club, match, table and gameweek data from WrexhamFeed, or null until the
-     * first update. See buildMockData in lib/Widgets/WrexhamMockData.sys.mjs
-     * for the shape.
+     * Data from WrexhamFeed, or null until the first update. See buildMockData
+     * in lib/Widgets/WrexhamMockData.sys.mjs for the shape.
      */
     data: null,
   },

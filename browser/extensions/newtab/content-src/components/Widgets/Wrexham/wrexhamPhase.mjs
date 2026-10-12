@@ -17,29 +17,22 @@ export const TABS = {
 
 export const TAB_ORDER = [TABS.MATCH, TABS.TABLE, TABS.FIXTURES];
 
-// Merino's World Cup API sent "live" for every in-play state, including half
-// time and extra time, and "past" once a match finished.
-export const LIVE_STATUSES = new Set(["live", "halftime", "extra time"]);
+// The World Cup API sent "live" for every in-play state and "past" once a
+// match finished; the other values are accepted too.
+const LIVE_STATUSES = new Set(["live", "halftime", "extra time"]);
 const FINAL_STATUSES = new Set(["past", "final", "ended"]);
 
-// Text statuses (`status`) that mean the match isn't being played today. The
-// World Cup API sent a postponed match as status_type "scheduled".
+// The World Cup API sent a postponed match as status_type "scheduled".
 const NOT_PLAYED_STATUSES = new Set(["Postponed", "Canceled", "Cancelled"]);
 
 // A result stays up for the rest of the fan's day, and for at least this long
 // after the final whistle so a late result doesn't vanish at midnight.
-export const RESULT_HOLD_MIN_MS = 3 * 60 * 60 * 1000;
+const RESULT_HOLD_MIN_MS = 3 * 60 * 60 * 1000;
 
 // Used for the final whistle when the data doesn't say when the match ended.
 const MATCH_LENGTH_MS = 115 * 60 * 1000;
 
-/**
- * When the match ended: `ended_at`, else the time of the last data change
- * (`updated`, epoch seconds), else an estimate from kickoff.
- *
- * @param {object} match
- * @returns {number} A ms epoch.
- */
+// Prefers `ended_at`, then `updated` (epoch seconds), then an estimate.
 function getEndedAt(match) {
   if (match.ended_at) {
     return Date.parse(match.ended_at);
@@ -50,22 +43,10 @@ function getEndedAt(match) {
   return Date.parse(match.date) + MATCH_LENGTH_MS;
 }
 
-/**
- * Whether a match in play is at half time.
- *
- * @param {object} match
- * @returns {boolean}
- */
 export function isHalfTime(match) {
   return match?.status === "Break" || match?.status_type === "halftime";
 }
 
-/**
- * The match clock to show, like "67" or "90+3", or null when there's none.
- *
- * @param {object} match
- * @returns {string|null}
- */
 export function getMatchClock(match) {
   const clock = match?.clock;
   if (typeof clock !== "string" || clock === "" || clock === "0") {
@@ -85,10 +66,8 @@ function isSameLocalDay(a, b) {
 }
 
 /**
- * Which state the widget is in.
- *
- * @param {object|null} match - Wrexham's most recent or current match.
- * @param {number} now - The current time, as a ms epoch.
+ * @param {object|null} match - Wrexham's current or most recent match.
+ * @param {number} now - A ms epoch.
  * @returns {string} One of PHASES.
  */
 export function getWrexhamPhase(match, now) {
@@ -115,23 +94,10 @@ export function getWrexhamPhase(match, now) {
 }
 
 /**
- * The tab the widget opens on. The Match tab leads in every phase: on matchday
- * it has the match, on other days the last result, form and next match.
- *
- * @param {string} _phase - One of PHASES.
- * @returns {string} One of TABS.
- */
-export function getDefaultTab(_phase) {
-  return TABS.MATCH;
-}
-
-/**
- * Time left until kickoff, in whole hours and minutes.
- *
  * @param {number} kickoff - A ms epoch.
- * @param {number} now - The current time, as a ms epoch.
- * @returns {{hours: number, minutes: number}|null} Null when kickoff is less
- *   than a minute away or has passed.
+ * @param {number} now - A ms epoch.
+ * @returns {{hours: number, minutes: number}|null} Null in the last minute
+ *   before kickoff and after it.
  */
 export function getCountdown(kickoff, now) {
   const totalMinutes = Math.floor((kickoff - now) / (60 * 1000));
@@ -142,11 +108,9 @@ export function getCountdown(kickoff, now) {
 }
 
 /**
- * Whole minutes since a match's data last changed.
- *
  * @param {object} match - A match with `updated` in epoch seconds.
- * @param {number} now - The current time, as a ms epoch.
- * @returns {number|null} Null when the data doesn't say.
+ * @param {number} now - A ms epoch.
+ * @returns {number|null}
  */
 export function getMinutesSinceUpdate(match, now) {
   if (!Number.isFinite(match?.updated)) {
@@ -155,14 +119,7 @@ export function getMinutesSinceUpdate(match, now) {
   return Math.max(0, Math.floor((now - match.updated * 1000) / (60 * 1000)));
 }
 
-/**
- * A team's goals and red cards in one list, in the order they happened.
- *
- * @param {object} match
- * @param {string} teamKey
- * @returns {Array<{kind: "goal"|"red_card", player: string, minute: number,
- *   minute_extra?: number, type?: string}>}
- */
+// A team's goals and red cards, in the order they happened.
 export function getTeamEvents(match, teamKey) {
   const goals = (match?.goals ?? [])
     .filter(goal => goal.team_key === teamKey)
@@ -174,14 +131,7 @@ export function getTeamEvents(match, teamKey) {
   return [...goals, ...cards].sort((a, b) => order(a) - order(b));
 }
 
-/**
- * Whole calendar days from today to a date, in the fan's own time zone: 0 for
- * later today, 1 for tomorrow.
- *
- * @param {number} date - A ms epoch.
- * @param {number} now - The current time, as a ms epoch.
- * @returns {number}
- */
+// Calendar days from today in the fan's time zone: 0 for today, 1 for tomorrow.
 export function getDaysUntil(date, now) {
   const startOfDay = ms => new Date(ms).setHours(0, 0, 0, 0);
   // Rounded so a day with a clock change still counts as one.
@@ -190,14 +140,7 @@ export function getDaysUntil(date, now) {
   );
 }
 
-/**
- * The other team in one of a team's matches, and whether that team was at
- * home.
- *
- * @param {object} match
- * @param {string} teamKey
- * @returns {{opponent: object, isHome: boolean}|null}
- */
+// isHome is whether `teamKey` was the home side.
 export function getOpponent(match, teamKey) {
   if (match?.home_team?.key === teamKey) {
     return { opponent: match.away_team, isHome: true };
@@ -208,13 +151,6 @@ export function getOpponent(match, teamKey) {
   return null;
 }
 
-/**
- * A match's score from one team's side.
- *
- * @param {object} match
- * @param {string} teamKey
- * @returns {{ours: number, theirs: number}|null}
- */
 export function getScoreForTeam(match, teamKey) {
   const side = getOpponent(match, teamKey);
   if (
@@ -229,13 +165,7 @@ export function getScoreForTeam(match, teamKey) {
     : { ours: match.away_score, theirs: match.home_score };
 }
 
-/**
- * The match the Match tab shows: today's on matchday, the next one otherwise.
- *
- * @param {object} data - The Wrexham slice's data.
- * @param {string} phase - One of PHASES.
- * @returns {object|null}
- */
+// Today's match on matchday, the next one otherwise.
 export function getMatchForPhase(data, phase) {
   if (phase === PHASES.OFFDAY) {
     return data?.next_match ?? null;
@@ -243,14 +173,6 @@ export function getMatchForPhase(data, phase) {
   return data?.focus_match ?? null;
 }
 
-/**
- * The result of a finished match from one team's side.
- *
- * @param {object} match
- * @param {string} teamKey
- * @returns {"win"|"draw"|"loss"|null} Null if the team didn't play or there's
- *   no score.
- */
 export function getResultForTeam(match, teamKey) {
   if (
     !Number.isFinite(match?.home_score) ||
@@ -276,12 +198,8 @@ export function getResultForTeam(match, teamKey) {
 }
 
 /**
- * Where a team sits in the table and which way it moved.
- *
- * @param {Array<object>} standings
- * @param {string} teamKey
  * @returns {{position: number, direction: "up"|"down"|"same"}|null} Null
- *   if the team isn't in the table or there's no previous position to compare.
+ *   without a previous position to compare.
  */
 export function getPositionChange(standings, teamKey) {
   const row = standings?.find(entry => entry.team?.key === teamKey);

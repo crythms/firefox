@@ -1882,7 +1882,6 @@ newtab-wrexham-widget-result-loss = Loss
 newtab-wrexham-widget-updated =
     { $minutes ->
         [0] Updated just now
-        [one] Updated { $minutes } min ago
        *[other] Updated { $minutes } min ago
     }
 # Time left before kickoff, shown above the kickoff time. "h" and "m" are

@@ -17,8 +17,6 @@
   --wrexham-font-size-scorers: 0.9333rem;
   --wrexham-tab-indicator-width: 3px;
 
-  // One property per visual job, so the contrast modes below can each be
-  // overridden here without touching the element rules.
   --wrexham-header-background: var(--wrexham-red);
   --wrexham-header-text-color: var(--wrexham-on-red);
   --wrexham-header-border: none;
@@ -99,7 +97,6 @@
     grid-row: span 4;
   }
 
-  // Visually hidden but kept in the accessibility tree.
   .sr-only {
     clip-path: inset(50%);
     height: 1px;
@@ -126,8 +123,6 @@
   flex: none;
 }
 
-// Title and competition share one line when there's room, and the competition
-// wraps underneath when a status badge takes the space.
 .wrexham-heading {
   align-items: baseline;
   column-gap: var(--space-small);
@@ -248,7 +243,6 @@
   padding-block: var(--space-xsmall) calc(var(--space-xsmall) + var(--wrexham-tab-indicator-width) - var(--wrexham-tab-border-width));
   padding-inline: 0;
 
-  // Ghost button tokens, which have their own contrast-mode values.
   &:not([aria-selected='true']):hover {
     background-color: var(--button-background-color-ghost-hover);
     color: var(--button-text-color-ghost-hover);
@@ -268,9 +262,8 @@
   }
 }
 
-// The panel is the scroll container, so when its content overflows and
-// Firefox makes it a tab stop, focus lands on the named tab panel. The ring is
-// inset because the card clips anything outside it.
+// An overflowing panel becomes a tab stop; the ring is inset because the card
+// clips anything outside it.
 .wrexham-tabpanel {
   flex: 1;
   min-block-size: 0;
@@ -374,7 +367,6 @@
   justify-content: center;
 }
 
-// Long names wrap onto a second line rather than being cut short.
 .wrexham-team-name,
 .wrexham-fixture-team {
   -webkit-box-orient: vertical;
@@ -412,8 +404,6 @@
   padding-inline: var(--space-xsmall);
 }
 
-// A brief highlight when the score changes. Nothing moves, and it is left out
-// entirely for anyone who asks for reduced motion.
 @media (prefers-reduced-motion: no-preference) {
   .wrexham-score-changed {
     animation: wrexham-score-flash 1.5s ease-out;
@@ -491,7 +481,6 @@
   margin: 0;
 }
 
-// Match tab on days without a match: a label column and a content column.
 .wrexham-offday {
   align-items: center;
   display: grid;
@@ -517,7 +506,6 @@
   margin: 0;
 }
 
-// A rule above the next match, across both columns.
 .wrexham-offday-next-label,
 .wrexham-offday-next {
   align-self: stretch;
@@ -564,7 +552,6 @@
   text-align: center;
 }
 
-// Full text colour and size: the scorers are the main detail of a live match.
 .wrexham-goals {
   border-block-start: var(--border-width) solid var(--border-color-deemphasized);
   color: var(--text-color);
@@ -696,7 +683,6 @@
   padding: var(--space-xsmall) var(--space-small);
 }
 
-// Matches the highlighted table row.
 .wrexham-fixture-highlight {
   background-color: var(--wrexham-highlight-background);
   color: var(--wrexham-highlight-text-color);

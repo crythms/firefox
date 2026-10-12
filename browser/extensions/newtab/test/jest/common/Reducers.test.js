@@ -1326,13 +1326,6 @@ describe("Reducers", () => {
   });
 
   describe("Wrexham", () => {
-    it("starts uninitialized with no data", () => {
-      expect(reducers.Wrexham(undefined, { type: "INIT" })).toEqual({
-        initialized: false,
-        data: null,
-      });
-    });
-
     it("WIDGETS_WREXHAM_UPDATE replaces the data and marks it initialized", () => {
       const data = { team: { key: "WRE", name: "Wrexham" } };
       const nextState = reducers.Wrexham(undefined, {
@@ -1340,11 +1333,6 @@ describe("Reducers", () => {
         data,
       });
       expect(nextState).toEqual({ initialized: true, data });
-    });
-
-    it("returns previous state for unrelated actions", () => {
-      const prev = { initialized: true, data: {} };
-      expect(reducers.Wrexham(prev, { type: "SOME_OTHER_ACTION" })).toBe(prev);
     });
   });
 

@@ -24,8 +24,7 @@ const PREF_MOCK_SCENARIO = "widgets.wrexham.mockScenario";
 
 const WREXHAM_ENTRY = WIDGET_REGISTRY.find(w => w.id === "wrexham");
 
-// Prefs that can flip the widget's registry enablement, including trainhop
-// config. A change to any of these should re-evaluate whether to send an update.
+// Prefs that can change whether the widget is enabled.
 const ENABLEMENT_PREFS = new Set([
   PREF_WIDGETS_ENABLED,
   WREXHAM_ENTRY.enabledPref,
@@ -45,20 +44,12 @@ export class WrexhamFeed {
     return isWidgetEnabled(WREXHAM_ENTRY, prefs, prefs?.[PREF_WIDGETS_ENABLED]);
   }
 
-  /**
-   * Reads the club, match, table and gameweek data. Dummy data for now; this
-   * is where the Merino sports API call goes.
-   *
-   * @returns {Promise<object>} See buildMockData for the shape.
-   */
+  // Dummy data for now; this is where the Merino sports API call goes.
   async #fetchData() {
     const scenario = this.store.getState()?.Prefs.values[PREF_MOCK_SCENARIO];
     return lazy.buildMockData(scenario, Date.now());
   }
 
-  /**
-   * Broadcast the current data to every tab.
-   */
   async update() {
     let data;
     try {

@@ -3,18 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /**
- * Dummy data for the Wrexham AFC widget, used until the widget reads the
- * Merino sports API. Times are built relative to `now` so each scenario always
- * reads as today's matchday (or, for "offday", as a normal day between games).
+ * Dummy data for the Wrexham AFC widget until it reads the Merino sports API.
+ * Times are relative to `now`, so matchday is always today.
  */
-
-export const MOCK_SCENARIOS = [
-  "prematch",
-  "live",
-  "halftime",
-  "fulltime",
-  "offday",
-];
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -102,11 +93,8 @@ function iso(ms) {
   return new Date(ms).toISOString();
 }
 
-/**
- * The instant the clock in Wrexham reads `hour`:00 on the day `daysAhead`
- * days after `now`. Good enough for dummy data; it can be an hour out on the
- * days the clocks change.
- */
+// When the clock in Wrexham reads `hour`:00, `daysAhead` days from `now`. It
+// can be an hour out on the days the clocks change.
 function wrexhamWallClock(now, daysAhead, hour) {
   const day = new Date(now + daysAhead * DAY);
   const guess = Date.UTC(
@@ -125,9 +113,6 @@ function wrexhamWallClock(now, daysAhead, hour) {
   return guess - (wrexhamHour - hour) * HOUR;
 }
 
-/**
- * A kickoff later today, on the hour, local time.
- */
 function laterToday(now) {
   const kickoff = new Date(now);
   kickoff.setMinutes(0, 0, 0);
@@ -153,7 +138,6 @@ function buildMatch({
   red_cards = [],
   updated = null,
 }) {
-  // The status, clock and update fields follow Merino's World Cup API.
   return {
     id,
     date: iso(kickoff),
@@ -175,7 +159,6 @@ function buildMatch({
   };
 }
 
-// Epoch seconds, as the World Cup API's `updated`.
 function epochSeconds(ms) {
   return Math.floor(ms / 1000);
 }
@@ -219,10 +202,9 @@ function buildGameweek(wrexhamMatch) {
 }
 
 /**
- * Builds the widget data for a scenario.
- *
- * @param {string} scenario - One of MOCK_SCENARIOS. Anything else is "offday".
- * @param {number} now - The current time, as a ms epoch.
+ * @param {string} scenario - prematch, live, halftime, fulltime or offday (the
+ *   default).
+ * @param {number} now - A ms epoch.
  * @returns {object} The data WrexhamFeed broadcasts as WIDGETS_WREXHAM_UPDATE.
  */
 export function buildMockData(scenario, now) {
@@ -241,7 +223,6 @@ export function buildMockData(scenario, now) {
   ];
   const derbyRedCards = [{ team_key: "DER", player: "K. Ward", minute: 63 }];
 
-  // Wrexham's previous match, three days ago.
   const lastKickoff = wrexhamWallClock(now, -3, 15);
   const southamptonHome = buildMatch({
     id: 1198,
@@ -258,7 +239,7 @@ export function buildMockData(scenario, now) {
     goals: [],
     updated: epochSeconds(lastKickoff + 115 * MINUTE),
   });
-  // Oldest first; the last is the win over Southampton.
+  // Oldest first.
   const formBefore = ["draw", "loss", "win", "draw", "win"];
 
   let focus;
