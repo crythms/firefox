@@ -85,8 +85,14 @@ const OTHER_FIXTURES = [
 
 const CHAMPIONSHIP = { key: "championship", name: "Championship" };
 
+// Only the opponent's badge shows club colours.
+const TEAM_COLORS = {
+  DER: { primary: "#FFFFFF", secondary: "#000000" },
+};
+
 function team(key) {
-  return { key, name: TEAMS[key] };
+  const colors = TEAM_COLORS[key];
+  return colors ? { key, name: TEAMS[key], colors } : { key, name: TEAMS[key] };
 }
 
 function iso(ms) {
@@ -201,9 +207,36 @@ function buildGameweek(wrexhamMatch) {
   return { number: 12, matches };
 }
 
+// The "minimal" scenario: every field the contract marks optional is left out.
+function withoutOptionalFields(data) {
+  const plainTeam = ({ key, name }) => ({ key, name });
+  const plainMatch = ({ venue: _venue, ended_at: _endedAt, ...match }) => ({
+    ...match,
+    home_team: plainTeam(match.home_team),
+    away_team: plainTeam(match.away_team),
+  });
+  const focus = plainMatch(data.focus_match);
+  return {
+    ...data,
+    focus_match: focus,
+    next_match: focus,
+    last_match: null,
+    form: [],
+    standings: data.standings.map(
+      ({ previous_position: _previous, ...row }) => row
+    ),
+    gameweek: {
+      ...data.gameweek,
+      matches: data.gameweek.matches.map(match =>
+        match.id === focus.id ? focus : plainMatch(match)
+      ),
+    },
+  };
+}
+
 /**
- * @param {string} scenario - prematch, live, halftime, fulltime or offday (the
- *   default).
+ * @param {string} scenario - prematch, live, halftime, fulltime, minimal (before
+ *   kickoff, without optional fields) or offday (the default).
  * @param {number} now - A ms epoch.
  * @returns {object} The data WrexhamFeed broadcasts as WIDGETS_WREXHAM_UPDATE.
  */
@@ -247,6 +280,7 @@ export function buildMockData(scenario, now) {
   let wrexhamWon = false;
   switch (scenario) {
     case "prematch":
+    case "minimal":
       focus = buildMatch({ ...derbyAway, kickoff: laterToday(now) });
       next = focus;
       break;
@@ -307,7 +341,7 @@ export function buildMockData(scenario, now) {
       break;
   }
 
-  return {
+  const data = {
     team: team(WREXHAM_KEY),
     league: CHAMPIONSHIP,
     focus_match: focus,
@@ -317,4 +351,5 @@ export function buildMockData(scenario, now) {
     standings: buildStandings({ wrexhamWon }),
     gameweek: buildGameweek(scenario === "fulltime" ? focus : next),
   };
+  return scenario === "minimal" ? withoutOptionalFields(data) : data;
 }

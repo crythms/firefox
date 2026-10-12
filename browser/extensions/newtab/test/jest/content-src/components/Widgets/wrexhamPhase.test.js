@@ -9,10 +9,13 @@ import {
   getMatchClock,
   getMatchForPhase,
   getMinutesSinceUpdate,
+  getMonogramColors,
   getOpponent,
   getPositionChange,
   getResultForTeam,
+  getRowMovement,
   getScoreForTeam,
+  getTableZone,
   getTeamEvents,
   getWrexhamPhase,
   isHalfTime,
@@ -309,6 +312,60 @@ describe("getResultForTeam", () => {
     expect(getResultForTeam(match(), "WRE")).toBeNull();
     expect(
       getResultForTeam(match({ home_score: 1, away_score: 0 }), "MID")
+    ).toBeNull();
+  });
+});
+
+describe("getRowMovement", () => {
+  it("compares the place with the previous one", () => {
+    expect(getRowMovement({ position: 6, previous_position: 9 })).toBe("up");
+    expect(getRowMovement({ position: 6, previous_position: 5 })).toBe("down");
+    expect(getRowMovement({ position: 6, previous_position: 6 })).toBe("same");
+    expect(getRowMovement({ position: 6 })).toBeNull();
+  });
+});
+
+describe("getTableZone", () => {
+  it("marks the Championship's promotion, play-off and relegation places", () => {
+    const zone = position => getTableZone("championship", position, 24);
+    expect([1, 2, 3, 6, 7, 21, 22, 24].map(zone)).toEqual([
+      "promotion",
+      "promotion",
+      "playoffs",
+      "playoffs",
+      null,
+      null,
+      "relegation",
+      "relegation",
+    ]);
+  });
+
+  it("marks nothing for a league without known rules", () => {
+    expect(getTableZone("league-one", 1, 24)).toBeNull();
+  });
+});
+
+describe("getMonogramColors", () => {
+  it("writes the code in the secondary colour when it's readable", () => {
+    expect(
+      getMonogramColors({ primary: "#FFFFFF", secondary: "#000000" })
+    ).toEqual({ background: "#FFFFFF", text: "#000000" });
+  });
+
+  it("falls back to black or white when the secondary colour isn't readable", () => {
+    expect(
+      getMonogramColors({ primary: "#C8102E", secondary: "#E03030" })
+    ).toEqual({ background: "#C8102E", text: "#ffffff" });
+    expect(getMonogramColors({ primary: "#F6C343" })).toEqual({
+      background: "#F6C343",
+      text: "#000000",
+    });
+  });
+
+  it("is null without a valid primary colour", () => {
+    expect(getMonogramColors(undefined)).toBeNull();
+    expect(
+      getMonogramColors({ primary: "red", secondary: "#000000" })
     ).toBeNull();
   });
 });

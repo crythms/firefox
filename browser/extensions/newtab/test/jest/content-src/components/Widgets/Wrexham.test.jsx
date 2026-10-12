@@ -407,6 +407,27 @@ describe("Wrexham widget", () => {
       ).toBeNull();
     });
 
+    it("fills the opponent's badge with its club colours", () => {
+      const { container } = renderWidget({ scenario: "live" });
+      const badge = container.querySelector(".wrexham-team-code");
+      expect(badge.classList).toContain("wrexham-team-code-club");
+      expect(badge.style.getPropertyValue("--wrexham-team-color")).toBe(
+        "#FFFFFF"
+      );
+      expect(badge.style.getPropertyValue("--wrexham-team-on-color")).toBe(
+        "#000000"
+      );
+    });
+
+    it("keeps the plain badge when the club colours aren't usable", () => {
+      const data = buildMockData("live", NOW);
+      data.focus_match.home_team.colors = { primary: "white" };
+      const { container } = renderWidget({ data });
+      const badge = container.querySelector(".wrexham-team-code");
+      expect(badge.classList).not.toContain("wrexham-team-code-club");
+      expect(badge.hasAttribute("style")).toBe(false);
+    });
+
     it("names each team's list of scorers after the team", () => {
       const { container } = renderWidget({ scenario: "live" });
       const labelOf = list =>
@@ -710,6 +731,68 @@ describe("Wrexham widget", () => {
       );
     });
 
+    it("marks the promotion, play-off and relegation places, with a key", () => {
+      const { container } = renderWidget({ scenario: "offday" });
+      fireEvent.click(container.querySelector("#wrexham-tab-table"));
+      const rows = [...container.querySelectorAll("tbody tr")];
+      const zoneAt = position =>
+        rows[position - 1]
+          .querySelector(".wrexham-table-position")
+          .className.match(/wrexham-zone-(\w+)/)?.[1] ?? null;
+      expect([1, 3, 7, 22].map(zoneAt)).toEqual([
+        "promotion",
+        "playoffs",
+        null,
+        "relegation",
+      ]);
+      expect(
+        rows[0].querySelector(".sr-only").getAttribute("data-l10n-id")
+      ).toBe("newtab-wrexham-widget-zone-promotion");
+      expect(
+        rows
+          .map((row, index) =>
+            row.classList.contains("wrexham-table-row-divider") ? index + 1 : 0
+          )
+          .filter(Boolean)
+      ).toEqual([2, 6, 21]);
+      expect(
+        [...container.querySelectorAll(".wrexham-table-legend li")].map(li =>
+          li.getAttribute("data-l10n-id")
+        )
+      ).toEqual([
+        "newtab-wrexham-widget-zone-promotion",
+        "newtab-wrexham-widget-zone-playoffs",
+        "newtab-wrexham-widget-zone-relegation",
+      ]);
+    });
+
+    it("leaves the table unmarked for a league without known zones", () => {
+      const data = buildMockData("offday", NOW);
+      data.league = { key: "league-one", name: "League One" };
+      const { container } = renderWidget({ data });
+      fireEvent.click(container.querySelector("#wrexham-tab-table"));
+      expect(
+        container.querySelector("tbody [class*='wrexham-zone-']")
+      ).toBeNull();
+      expect(container.querySelector(".wrexham-table-row-divider")).toBeNull();
+      expect(container.querySelector(".wrexham-table-legend")).toBeNull();
+    });
+
+    it("shows which way teams moved since the gameweek began", () => {
+      const { container } = renderWidget({ scenario: "fulltime" });
+      fireEvent.click(container.querySelector("#wrexham-tab-table"));
+      expect(
+        [...container.querySelectorAll(".wrexham-movement")].map(arrow => [
+          arrow.closest("tr").querySelector("th").textContent,
+          arrow.firstElementChild.getAttribute("data-l10n-id"),
+          args(arrow.firstElementChild),
+        ])
+      ).toEqual([
+        ["Wrexham", "newtab-wrexham-widget-movement-up", { previous: 7 }],
+        ["Millwall", "newtab-wrexham-widget-movement-down", { previous: 6 }],
+      ]);
+    });
+
     it("shows a message instead of an empty table", () => {
       const data = buildMockData("offday", NOW);
       data.standings = [];
@@ -817,6 +900,36 @@ describe("Wrexham widget", () => {
         widget_source: "compact",
         action_value: "match",
       });
+    });
+  });
+
+  describe("without the optional fields", () => {
+    it("shows the match, table and fixtures", () => {
+      const { container } = renderWidget({ scenario: "minimal" });
+      expect(
+        container
+          .querySelector(".wrexham-match-meta")
+          .getAttribute("data-l10n-id")
+      ).toBe("newtab-wrexham-widget-match-date");
+      expect(container.querySelector(".wrexham-team-code-club")).toBeNull();
+      fireEvent.click(container.querySelector("#wrexham-tab-table"));
+      expect(container.querySelectorAll("tbody tr")).toHaveLength(24);
+      expect(container.querySelector(".wrexham-movement")).toBeNull();
+      fireEvent.click(container.querySelector("#wrexham-tab-fixtures"));
+      expect(
+        container.querySelector(".wrexham-fixture-highlight")
+      ).toBeTruthy();
+    });
+
+    it("shows the match at the medium size", () => {
+      const { container } = renderWidget({
+        scenario: "minimal",
+        size: "medium",
+      });
+      expect(container.querySelector(".wrexham-compact-match")).toBeTruthy();
+      expect(footer(container).getAttribute("data-l10n-id")).toBe(
+        "newtab-wrexham-widget-link-match-preview"
+      );
     });
   });
 

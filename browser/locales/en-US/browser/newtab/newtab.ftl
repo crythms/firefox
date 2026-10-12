@@ -2020,6 +2020,32 @@ newtab-wrexham-widget-table-points = Pts
     .title = Points
     .aria-label = Points
 newtab-wrexham-widget-no-table = The table will show here once it’s available
+# Names of the parts of the table marked with a coloured bar: the places that
+# win promotion, reach the play-offs or are relegated. Shown in a key under
+# the table, and read out by screen readers after a team's place.
+newtab-wrexham-widget-zone-promotion = Promotion
+newtab-wrexham-widget-zone-playoffs = Play-offs
+newtab-wrexham-widget-zone-relegation = Relegation
+
+## Read out by screen readers after a team's place in the table, in place of
+## the arrow showing how it moved since the current gameweek began.
+## Variables:
+##   $previous (Number) - The team's place before, like 9.
+
+newtab-wrexham-widget-movement-up =
+    { NUMBER($previous, type: "ordinal") ->
+        [one] Up from { $previous }st
+        [two] Up from { $previous }nd
+        [few] Up from { $previous }rd
+       *[other] Up from { $previous }th
+    }
+newtab-wrexham-widget-movement-down =
+    { NUMBER($previous, type: "ordinal") ->
+        [one] Down from { $previous }st
+        [two] Down from { $previous }nd
+        [few] Down from { $previous }rd
+       *[other] Down from { $previous }th
+    }
 
 ## Fixtures tab
 ## Variables:

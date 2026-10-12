@@ -20,10 +20,13 @@ import {
   getMatchClock,
   getMatchForPhase,
   getMinutesSinceUpdate,
+  getMonogramColors,
   getOpponent,
   getPositionChange,
   getResultForTeam,
+  getRowMovement,
   getScoreForTeam,
+  getTableZone,
   getTeamEvents,
   getWrexhamPhase,
   isHalfTime,
@@ -129,8 +132,7 @@ export const WREXHAM_LINKS = {
 
 const CLUB_TIME_ZONE = "Europe/London";
 
-// Automatic promotion and play-off places.
-const TABLE_DIVIDER_POSITIONS = new Set([2, 6]);
+const TABLE_ZONES = ["promotion", "playoffs", "relegation"];
 
 const MATCH_LINK_L10N_IDS = {
   [PHASES.PREMATCH]: "newtab-wrexham-widget-link-match-preview",
@@ -195,8 +197,20 @@ function TeamMark({ team, teamKey }) {
   if (team?.key === teamKey) {
     return <img className="wrexham-team-crest" src={CREST_URL} alt="" />;
   }
+  const colors = getMonogramColors(team?.colors);
   return (
-    <span className="wrexham-team-code" aria-hidden="true">
+    <span
+      className={`wrexham-team-code${colors ? " wrexham-team-code-club" : ""}`}
+      style={
+        colors
+          ? {
+              "--wrexham-team-color": colors.background,
+              "--wrexham-team-on-color": colors.text,
+            }
+          : undefined
+      }
+      aria-hidden="true"
+    >
       {team?.key}
     </span>
   );
@@ -636,7 +650,23 @@ function MatchPanel({
   );
 }
 
-function StandingsTable({ rows, teamKey, leagueName, ref }) {
+function Movement({ row }) {
+  const direction = getRowMovement(row);
+  if (direction !== "up" && direction !== "down") {
+    return null;
+  }
+  return (
+    <span className={`wrexham-movement wrexham-movement-${direction}`}>
+      <span
+        className="sr-only"
+        data-l10n-id={`newtab-wrexham-widget-movement-${direction}`}
+        data-l10n-args={JSON.stringify({ previous: row.previous_position })}
+      />
+    </span>
+  );
+}
+
+function StandingsTable({ rows, zones, teamKey, leagueName, ref }) {
   return (
     <table
       ref={ref}
@@ -665,17 +695,29 @@ function StandingsTable({ rows, teamKey, leagueName, ref }) {
         </tr>
       </thead>
       <tbody>
-        {rows.map(row => {
+        {rows.map((row, index) => {
+          const zone = zones[index];
           const classNames = ["wrexham-table-row"];
           if (row.team.key === teamKey) {
             classNames.push("wrexham-table-row-highlight");
           }
-          if (TABLE_DIVIDER_POSITIONS.has(row.position)) {
+          if (index < rows.length - 1 && zone !== zones[index + 1]) {
             classNames.push("wrexham-table-row-divider");
           }
           return (
             <tr key={row.team.key} className={classNames.join(" ")}>
-              <td className="wrexham-table-position">{row.position}</td>
+              <td
+                className={`wrexham-table-position${zone ? ` wrexham-zone-${zone}` : ""}`}
+              >
+                <span className="wrexham-table-place">{row.position}</span>
+                <Movement row={row} />
+                {zone && (
+                  <span
+                    className="sr-only"
+                    data-l10n-id={`newtab-wrexham-widget-zone-${zone}`}
+                  />
+                )}
+              </td>
               <th scope="row" className="wrexham-table-team">
                 {row.team.name}
               </th>
@@ -690,7 +732,7 @@ function StandingsTable({ rows, teamKey, leagueName, ref }) {
   );
 }
 
-function TablePanel({ standings, teamKey, leagueName }) {
+function TablePanel({ standings, teamKey, leagueKey, leagueName }) {
   const tableRef = useRef(null);
 
   // Scroll the tab panel, not the page, so Wrexham's row is in view.
@@ -713,13 +755,31 @@ function TablePanel({ standings, teamKey, leagueName }) {
     );
   }
 
+  const zones = standings.map(row =>
+    getTableZone(leagueKey, row.position, standings.length)
+  );
   return (
-    <StandingsTable
-      ref={tableRef}
-      rows={standings}
-      teamKey={teamKey}
-      leagueName={leagueName}
-    />
+    <>
+      <StandingsTable
+        ref={tableRef}
+        rows={standings}
+        zones={zones}
+        teamKey={teamKey}
+        leagueName={leagueName}
+      />
+      {zones.some(Boolean) && (
+        // Each zone row carries its own label for screen readers.
+        <ul className="wrexham-table-legend" aria-hidden="true">
+          {TABLE_ZONES.map(zone => (
+            <li
+              key={zone}
+              className={`wrexham-zone-${zone}`}
+              data-l10n-id={`newtab-wrexham-widget-zone-${zone}`}
+            />
+          ))}
+        </ul>
+      )}
+    </>
   );
 }
 
@@ -1056,6 +1116,7 @@ const Wrexham = ({
       <TablePanel
         standings={data?.standings}
         teamKey={teamKey}
+        leagueKey={data?.league?.key}
         leagueName={data?.league?.name}
       />
     );

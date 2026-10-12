@@ -1904,7 +1904,7 @@ export const PREFS_CONFIG = new Map([
     "widgets.wrexham.mockScenario",
     {
       title:
-        "Dummy data the Wrexham AFC widget shows until it has live data: 'prematch' | 'live' | 'halftime' | 'fulltime' | 'offday'",
+        "Dummy data the Wrexham AFC widget shows until it has live data: 'prematch' | 'live' | 'halftime' | 'fulltime' | 'minimal' | 'offday'",
       value: "offday",
     },
   ],

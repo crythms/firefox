@@ -198,19 +198,85 @@ export function getResultForTeam(match, teamKey) {
 }
 
 /**
- * @returns {{position: number, direction: "up"|"down"|"same"}|null} Null
- *   without a previous position to compare.
+ * @returns {"up"|"down"|"same"|null} Null without a previous position.
  */
-export function getPositionChange(standings, teamKey) {
-  const row = standings?.find(entry => entry.team?.key === teamKey);
-  if (!row || !Number.isFinite(row.previous_position)) {
+export function getRowMovement(row) {
+  if (!Number.isFinite(row?.previous_position)) {
     return null;
   }
-  let direction = "same";
   if (row.previous_position > row.position) {
-    direction = "up";
-  } else if (row.previous_position < row.position) {
-    direction = "down";
+    return "up";
   }
-  return { position: row.position, direction };
+  return row.previous_position < row.position ? "down" : "same";
+}
+
+export function getPositionChange(standings, teamKey) {
+  const row = standings?.find(entry => entry.team?.key === teamKey);
+  const direction = getRowMovement(row);
+  return direction ? { position: row.position, direction } : null;
+}
+
+// Places counted from the top of the table, except relegation, which counts
+// from the bottom.
+const LEAGUE_ZONES = {
+  championship: { promotion: 2, playoffs: 6, relegation: 3 },
+};
+
+/**
+ * @returns {"promotion"|"playoffs"|"relegation"|null} Null outside the zones
+ *   or for a league without known rules.
+ */
+export function getTableZone(leagueKey, position, teamCount) {
+  const zones = LEAGUE_ZONES[leagueKey];
+  if (!zones) {
+    return null;
+  }
+  if (position <= zones.promotion) {
+    return "promotion";
+  }
+  if (position <= zones.playoffs) {
+    return "playoffs";
+  }
+  return position > teamCount - zones.relegation ? "relegation" : null;
+}
+
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+function getLuminance(hex) {
+  const channel = start => {
+    const value = parseInt(hex.slice(start, start + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+}
+
+function getContrast(a, b) {
+  const [lighter, darker] = [getLuminance(a), getLuminance(b)].sort(
+    (x, y) => y - x
+  );
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Badge colours from a team's club colours: the secondary colour for the text
+ * when it is readable on the primary, otherwise black or white.
+ *
+ * @param {{primary?: string, secondary?: string}} [colors]
+ * @returns {{background: string, text: string}|null} Null without a valid
+ *   primary colour.
+ */
+export function getMonogramColors(colors) {
+  const background = colors?.primary;
+  if (!HEX_COLOR.test(background ?? "")) {
+    return null;
+  }
+  const secondary = colors.secondary ?? "";
+  if (HEX_COLOR.test(secondary) && getContrast(background, secondary) >= 4.5) {
+    return { background, text: secondary };
+  }
+  const text =
+    getContrast(background, "#000000") >= getContrast(background, "#ffffff")
+      ? "#000000"
+      : "#ffffff";
+  return { background, text };
 }

@@ -49,6 +49,10 @@
   --wrexham-team-code-background: light-dark(#EDEDF0, #42414D);
   --wrexham-team-code-border: none;
   --wrexham-red-card-color: light-dark(#D70022, #FF4F5E);
+  --wrexham-zone-bar-width: 3px;
+  --wrexham-promotion-color: light-dark(#0F6B3A, #4CC38A);
+  --wrexham-playoffs-color: light-dark(#0061E0, #80B8FF);
+  --wrexham-relegation-color: var(--wrexham-red-card-color);
   --wrexham-score-flash-color: color-mix(in srgb, #F6C343 45%, transparent);
 
   overflow: clip;
@@ -87,6 +91,8 @@
     --wrexham-team-code-background: var(--background-color-canvas);
     --wrexham-team-code-border: var(--border-width) solid var(--border-color);
     --wrexham-red-card-color: var(--text-color);
+    --wrexham-promotion-color: var(--text-color);
+    --wrexham-playoffs-color: var(--text-color);
   }
 
   &.medium-widget {
@@ -355,7 +361,7 @@
 
 .wrexham-team-code {
   align-items: center;
-  background-color: var(--wrexham-team-code-background);
+  background-color: var(--wrexham-team-color, var(--wrexham-team-code-background));
   block-size: var(--size-item-large);
   border: var(--wrexham-team-code-border);
   border-radius: var(--border-radius-circle);
@@ -363,8 +369,15 @@
   display: flex;
   font-size: var(--wrexham-font-size-xsmall);
   font-weight: var(--font-weight-bold);
+  color: var(--wrexham-team-on-color, inherit);
   inline-size: var(--size-item-large);
   justify-content: center;
+}
+
+// The ring is in the text colour, which contrasts with the badge, so a badge
+// close to the card's colour still stands out.
+.wrexham-team-code-club {
+  --wrexham-team-code-border: var(--border-width) solid currentColor;
 }
 
 .wrexham-team-name,
@@ -614,6 +627,7 @@
     letter-spacing: 0.06em;
     position: sticky;
     text-transform: uppercase;
+    z-index: 1;
   }
 
   tbody th {
@@ -624,6 +638,21 @@
     inline-size: 2em;
     padding-inline-start: var(--space-medium);
     text-align: start;
+  }
+
+  // Not a border: collapsed table borders paint over the sticky header.
+  td:is(.wrexham-zone-promotion, .wrexham-zone-playoffs, .wrexham-zone-relegation) {
+    position: relative;
+
+    &::before {
+      background-color: var(--wrexham-zone-color);
+      content: '';
+      forced-color-adjust: none;
+      inline-size: var(--wrexham-zone-bar-width);
+      inset-block: 0;
+      inset-inline-start: 0;
+      position: absolute;
+    }
   }
 
   // Takes the space the number columns leave, and wraps long names.
@@ -657,6 +686,64 @@
   background-color: var(--wrexham-highlight-background);
   color: var(--wrexham-highlight-text-color);
   font-weight: var(--font-weight-bold);
+
+  .wrexham-table-position {
+    --wrexham-zone-color: currentColor;
+  }
+
+  .wrexham-movement {
+    fill: currentColor;
+  }
+}
+
+.wrexham-zone-promotion {
+  --wrexham-zone-color: var(--wrexham-promotion-color);
+}
+
+.wrexham-zone-playoffs {
+  --wrexham-zone-color: var(--wrexham-playoffs-color);
+}
+
+.wrexham-zone-relegation {
+  --wrexham-zone-color: var(--wrexham-relegation-color);
+}
+
+// Lines up the arrows whether the place has one digit or two.
+.wrexham-table-place {
+  display: inline-block;
+  min-inline-size: 2ch;
+}
+
+.wrexham-movement {
+  background: url('chrome://global/skin/icons/shaft-arrow-up.svg') center / contain no-repeat;
+  block-size: 12px;
+  display: inline-block;
+  fill: var(--wrexham-promotion-color);
+  inline-size: 12px;
+  margin-inline-start: var(--space-xxsmall);
+  -moz-context-properties: fill;
+  vertical-align: middle;
+}
+
+.wrexham-movement-down {
+  background-image: url('chrome://global/skin/icons/shaft-arrow-down.svg');
+  fill: var(--wrexham-relegation-color);
+}
+
+.wrexham-table-legend {
+  color: var(--text-color-deemphasized);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--wrexham-font-size-xsmall);
+  gap: var(--space-xsmall) var(--space-medium);
+  list-style: none;
+  margin: 0;
+  padding: var(--space-small) var(--space-medium);
+
+  li {
+    border-inline-start: var(--wrexham-zone-bar-width) solid var(--wrexham-zone-color);
+    padding-inline-start: var(--space-xsmall);
+  }
 }
 
 // Fixtures tab
