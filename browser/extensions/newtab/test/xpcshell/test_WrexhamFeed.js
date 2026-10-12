@@ -153,6 +153,15 @@ add_task(async function test_mock_data_shape() {
     );
   }
 
+  for (const scenario of ["live", "halftime", "fulltime"]) {
+    const match = buildMockData(scenario, now).focus_match;
+    const tally = key => match.goals.filter(g => g.team_key === key).length;
+    Assert.equal(tally("DER"), match.home_score, `${scenario}: home goals`);
+    Assert.equal(tally("WRE"), match.away_score, `${scenario}: away goals`);
+    Assert.ok(Array.isArray(match.red_cards), `${scenario}: red cards list`);
+    Assert.ok(Number.isFinite(match.updated), `${scenario}: an update time`);
+  }
+
   const halftime = buildMockData("halftime", now).focus_match;
   Assert.equal(halftime.status_type, "live", "Half time is still live");
   Assert.equal(halftime.status, "Break", "Half time is a Break");

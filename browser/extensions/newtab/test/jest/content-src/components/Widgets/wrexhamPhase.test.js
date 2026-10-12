@@ -5,14 +5,17 @@
 import {
   PHASES,
   TABS,
+  getCountdown,
   getDaysUntil,
   getDefaultTab,
   getMatchClock,
   getMatchForPhase,
+  getMinutesSinceUpdate,
   getOpponent,
   getPositionChange,
   getResultForTeam,
   getScoreForTeam,
+  getTeamEvents,
   getWrexhamPhase,
   isHalfTime,
 } from "content-src/components/Widgets/Wrexham/wrexhamPhase.mjs";
@@ -178,6 +181,87 @@ describe("getDefaultTab", () => {
     for (const phase of Object.values(PHASES)) {
       expect(getDefaultTab(phase)).toBe(TABS.MATCH);
     }
+  });
+});
+
+describe("getCountdown", () => {
+  const kickoff = localTime(10, 15);
+
+  it("splits the time left into hours and minutes", () => {
+    expect(getCountdown(kickoff, localTime(10, 11, 48))).toEqual({
+      hours: 3,
+      minutes: 12,
+    });
+  });
+
+  it("rounds down to the whole minute", () => {
+    expect(getCountdown(kickoff, kickoff - 59.5 * 60 * 1000)).toEqual({
+      hours: 0,
+      minutes: 59,
+    });
+  });
+
+  it("is null in the last minute and after kickoff", () => {
+    expect(getCountdown(kickoff, kickoff - 30 * 1000)).toBeNull();
+    expect(getCountdown(kickoff, kickoff + HOUR)).toBeNull();
+  });
+});
+
+describe("getMinutesSinceUpdate", () => {
+  const now = localTime(10, 16);
+
+  it("counts whole minutes from the epoch-seconds update time", () => {
+    expect(getMinutesSinceUpdate({ updated: now / 1000 - 150 }, now)).toBe(2);
+    expect(getMinutesSinceUpdate({ updated: now / 1000 }, now)).toBe(0);
+  });
+
+  it("treats an update stamped slightly ahead of the clock as just now", () => {
+    expect(getMinutesSinceUpdate({ updated: now / 1000 + 20 }, now)).toBe(0);
+  });
+
+  it("is null without an update time", () => {
+    expect(getMinutesSinceUpdate({ updated: null }, now)).toBeNull();
+    expect(getMinutesSinceUpdate(null, now)).toBeNull();
+  });
+});
+
+describe("getTeamEvents", () => {
+  const events = match({
+    goals: [
+      { team_key: "WRE", player: "A", minute: 45, minute_extra: 2 },
+      { team_key: "DER", player: "B", minute: 30, type: "penalty" },
+      { team_key: "WRE", player: "C", minute: 12, type: "own_goal" },
+      { team_key: "WRE", player: "D", minute: 46 },
+    ],
+    red_cards: [{ team_key: "WRE", player: "E", minute: 45 }],
+  });
+
+  it("merges a team's goals and red cards in the order they happened", () => {
+    expect(
+      getTeamEvents(events, "WRE").map(event => [event.kind, event.player])
+    ).toEqual([
+      ["goal", "C"],
+      ["red_card", "E"],
+      ["goal", "A"],
+      ["goal", "D"],
+    ]);
+  });
+
+  it("keeps each goal's type", () => {
+    expect(getTeamEvents(events, "DER")).toEqual([
+      {
+        kind: "goal",
+        team_key: "DER",
+        player: "B",
+        minute: 30,
+        type: "penalty",
+      },
+    ]);
+  });
+
+  it("is empty when the match has no goals or cards", () => {
+    expect(getTeamEvents(match({}), "WRE")).toEqual([]);
+    expect(getTeamEvents(null, "WRE")).toEqual([]);
   });
 });
 

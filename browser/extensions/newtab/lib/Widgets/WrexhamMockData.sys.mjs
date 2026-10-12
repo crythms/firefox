@@ -150,9 +150,10 @@ function buildMatch({
   home_score = null,
   away_score = null,
   goals = [],
+  red_cards = [],
   updated = null,
 }) {
-  // Field names and values follow Merino's World Cup API, apart from id.
+  // The status, clock and update fields follow Merino's World Cup API.
   return {
     id,
     date: iso(kickoff),
@@ -167,6 +168,7 @@ function buildMatch({
     home_score,
     away_score,
     goals,
+    red_cards,
     ended_at: null,
     updated,
     url: null,
@@ -230,11 +232,14 @@ export function buildMockData(scenario, now) {
     away: WREXHAM_KEY,
     venue: "Pride Park",
   };
+  // team_key is the team the goal counts for, so an own goal by a Derby
+  // player counts for Wrexham.
   const derbyGoals = [
-    { team_key: WREXHAM_KEY, player: "J. Evans", minute: 12 },
-    { team_key: "DER", player: "T. Clarke", minute: 34 },
-    { team_key: WREXHAM_KEY, player: "O. Rhys", minute: 58 },
+    { team_key: WREXHAM_KEY, player: "J. Evans", minute: 12, type: null },
+    { team_key: "DER", player: "T. Clarke", minute: 34, type: "penalty" },
+    { team_key: WREXHAM_KEY, player: "M. Hart", minute: 58, type: "own_goal" },
   ];
+  const derbyRedCards = [{ team_key: "DER", player: "K. Ward", minute: 63 }];
 
   // Wrexham's previous match, three days ago.
   const lastKickoff = wrexhamWallClock(now, -3, 15);
@@ -275,6 +280,7 @@ export function buildMockData(scenario, now) {
         home_score: 1,
         away_score: 2,
         goals: derbyGoals,
+        red_cards: derbyRedCards,
         updated: epochSeconds(now),
       });
       next = focus;
@@ -305,6 +311,7 @@ export function buildMockData(scenario, now) {
         home_score: 1,
         away_score: 2,
         goals: derbyGoals,
+        red_cards: derbyRedCards,
         updated: epochSeconds(now - 5 * MINUTE),
       });
       next = null;

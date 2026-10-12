@@ -1853,15 +1853,50 @@ newtab-wrexham-widget-score = { $home }–{ $away }
 #   in stoppage time.
 newtab-wrexham-widget-clock = { $clock }’
 newtab-wrexham-widget-half-time = Half time
+# A goal in the list of scorers. "pen" marks a penalty and "og" an own goal,
+# as in football reporting.
 # Variables:
 #   $player (String) - The name of the player who scored.
-#   $minute (Number) - The minute the goal was scored in.
-newtab-wrexham-widget-goal = { $player } { $minute }’
+#   $minute (String) - The minute the goal was scored in, like 34, or 90+2 in
+#   stoppage time.
+#   $type (String) - "penalty", "own_goal" or "goal".
+newtab-wrexham-widget-goal =
+    { $type ->
+        [penalty] { $player } { $minute }’ (pen)
+        [own_goal] { $player } { $minute }’ (og)
+       *[other] { $player } { $minute }’
+    }
+# A player sent off, shown next to a small red card in the list of scorers.
+# Variables:
+#   $player (String) - The name of the player who was sent off.
+#   $minute (String) - The minute it happened, like 63.
+newtab-wrexham-widget-red-card = { $player } { $minute }’
+# Read out by screen readers before a sent-off player's name.
+newtab-wrexham-widget-red-card-label = Red card:
 newtab-wrexham-widget-result-win = Win
 newtab-wrexham-widget-result-draw = Draw
 newtab-wrexham-widget-result-loss = Loss
-# Kickoff time shown in the user's own time zone.
-newtab-wrexham-widget-kickoff-label = Kick off, your time
+# How fresh the live score is.
+# Variables:
+#   $minutes (Number) - Minutes since the score data last changed.
+newtab-wrexham-widget-updated =
+    { $minutes ->
+        [0] Updated just now
+        [one] Updated { $minutes } min ago
+       *[other] Updated { $minutes } min ago
+    }
+# Time left before kickoff, shown above the kickoff time. "h" and "m" are
+# short for hours and minutes.
+# Variables:
+#   $hours (Number) - Whole hours until kickoff, like 3.
+#   $minutes (Number) - Minutes on top of the hours, like 12.
+newtab-wrexham-widget-countdown =
+    { $hours ->
+        [0] Kicks off in { $minutes }m
+       *[other] Kicks off in { $hours }h { $minutes }m
+    }
+newtab-wrexham-widget-countdown-now = Kicking off now
+newtab-wrexham-widget-countdown-delayed = Kickoff delayed
 newtab-wrexham-widget-kickoff-time = { DATETIME($date, hour: "numeric", minute: "2-digit") }
 # Variables:
 #   $timeZone (String) - The name of the user's time zone, like "Eastern Time".
@@ -1871,6 +1906,27 @@ newtab-wrexham-widget-kickoff-zone = { $timeZone }
 #   $clubTime (Date) - The kickoff time as the clock in Wrexham, Wales, shows it.
 newtab-wrexham-widget-kickoff-zone-club = { $timeZone } · { DATETIME($clubTime, hour: "numeric", minute: "2-digit") } in Wrexham
 newtab-wrexham-widget-no-match = No upcoming match yet
+
+## Read out by screen readers when the score changes or the match ends.
+## Variables:
+##   $home (String) - The home team's name.
+##   $away (String) - The away team's name.
+##   $homeScore (Number) - Goals scored by the home team.
+##   $awayScore (Number) - Goals scored by the away team.
+
+# Variables:
+#   $team (String) - The name of the team that scored.
+newtab-wrexham-widget-announce-goal = Goal for { $team }. { $home } { $homeScore }, { $away } { $awayScore }.
+# For a score change that isn't a single new goal, like a correction.
+newtab-wrexham-widget-announce-score = Score update. { $home } { $homeScore }, { $away } { $awayScore }.
+# Variables:
+#   $result (String) - "win", "draw" or "loss", from Wrexham's side.
+newtab-wrexham-widget-announce-full-time =
+    { $result ->
+        [win] Full time. { $home } { $homeScore }, { $away } { $awayScore }. Wrexham win.
+        [draw] Full time. { $home } { $homeScore }, { $away } { $awayScore }. A draw.
+       *[loss] Full time. { $home } { $homeScore }, { $away } { $awayScore }. Wrexham lose.
+    }
 
 ## Where Wrexham sits in the league table after a match.
 ## Variables:

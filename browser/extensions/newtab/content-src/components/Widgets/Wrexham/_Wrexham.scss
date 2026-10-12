@@ -13,6 +13,8 @@
   --wrexham-on-red: white;
   --wrexham-accent: light-dark(#C8102E, #FF8A9C);
   --wrexham-font-size-xsmall: 0.8rem;
+  // 14px, which fits three scorers a side.
+  --wrexham-font-size-scorers: 0.9333rem;
   --wrexham-tab-indicator-width: 3px;
 
   // One property per visual job, so the contrast modes below can each be
@@ -48,6 +50,8 @@
   --wrexham-chip-border: none;
   --wrexham-team-code-background: light-dark(#EDEDF0, #42414D);
   --wrexham-team-code-border: none;
+  --wrexham-red-card-color: light-dark(#D70022, #FF4F5E);
+  --wrexham-score-flash-color: color-mix(in srgb, #F6C343 45%, transparent);
 
   overflow: clip;
   padding: 0;
@@ -84,6 +88,7 @@
     --wrexham-chip-border: var(--border-width) solid var(--border-color);
     --wrexham-team-code-background: var(--background-color-canvas);
     --wrexham-team-code-border: var(--border-width) solid var(--border-color);
+    --wrexham-red-card-color: var(--text-color);
   }
 
   &.medium-widget {
@@ -327,7 +332,6 @@
 }
 
 .wrexham-match-meta,
-.wrexham-kickoff-label,
 .wrexham-section-label {
   color: var(--text-color-deemphasized);
   font-size: var(--wrexham-font-size-xsmall);
@@ -400,10 +404,31 @@
 }
 
 .wrexham-score {
+  border-radius: var(--border-radius-small);
   font-size: var(--font-size-xxxlarge);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-bold);
   line-height: 1;
+  padding-inline: var(--space-xsmall);
+}
+
+// A brief highlight when the score changes. Nothing moves, and it is left out
+// entirely for anyone who asks for reduced motion.
+@media (prefers-reduced-motion: no-preference) {
+  .wrexham-score-changed {
+    animation: wrexham-score-flash 1.5s ease-out;
+  }
+}
+
+@keyframes wrexham-score-flash {
+  0%,
+  40% {
+    background-color: var(--wrexham-score-flash-color);
+  }
+
+  100% {
+    background-color: transparent;
+  }
 }
 
 .wrexham-live-clock {
@@ -444,6 +469,12 @@
   margin-block-start: var(--space-xsmall);
 }
 
+.wrexham-countdown {
+  font-size: var(--font-size-root);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
 .wrexham-kickoff-time {
   color: var(--wrexham-accent-text-color);
   font-size: var(--font-size-xxlarge);
@@ -453,7 +484,8 @@
 }
 
 .wrexham-kickoff-zone,
-.wrexham-position-line {
+.wrexham-position-line,
+.wrexham-updated {
   color: var(--text-color-deemphasized);
   font-size: var(--wrexham-font-size-xsmall);
   margin: 0;
@@ -532,19 +564,42 @@
   text-align: center;
 }
 
+// Full text colour and size: the scorers are the main detail of a live match.
 .wrexham-goals {
   border-block-start: var(--border-width) solid var(--border-color-deemphasized);
-  color: var(--text-color-deemphasized);
+  color: var(--text-color);
   display: grid;
-  font-size: var(--wrexham-font-size-xsmall);
+  font-size: var(--wrexham-font-size-scorers);
   gap: var(--space-small);
   grid-template-columns: 1fr 1fr;
+  line-height: 1.2;
   padding-block-start: var(--space-xsmall);
 
   ul {
     list-style: none;
     margin: 0;
     padding: 0;
+  }
+}
+
+.wrexham-event-red-card {
+  align-items: center;
+  display: flex;
+  gap: var(--space-xsmall);
+  justify-content: center;
+}
+
+.wrexham-card-icon {
+  background-color: var(--wrexham-red-card-color);
+  block-size: 0.9em;
+  border-radius: var(--border-radius-xsmall);
+  flex: none;
+  inline-size: 0.6em;
+
+  @media (forced-colors) {
+    // Backgrounds are dropped in forced colours; a border keeps the shape.
+    border: 0.3em solid var(--wrexham-red-card-color);
+    box-sizing: border-box;
   }
 }
 

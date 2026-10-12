@@ -10,21 +10,114 @@ import { WidgetMenuButton } from "../WidgetMenuButton";
 import { WidgetMenuFooter } from "../WidgetMenuFooter";
 import { SizeSubmenu } from "../SizeSubmenu";
 import { useWidgetTelemetry } from "../useWidgetTelemetry";
+import { usePageVisible } from "../usePageVisible";
 import {
   PHASES,
   TABS,
   TAB_ORDER,
+  getCountdown,
   getDaysUntil,
   getDefaultTab,
   getMatchClock,
   getMatchForPhase,
+  getMinutesSinceUpdate,
   getOpponent,
   getPositionChange,
   getResultForTeam,
   getScoreForTeam,
+  getTeamEvents,
   getWrexhamPhase,
   isHalfTime,
 } from "./wrexhamPhase.mjs";
+
+// How often the countdown and "Updated" cue refresh while the page is visible.
+const TICK_MS = 30 * 1000;
+
+/**
+ * Re-renders on an interval while enabled, so times derived from Date.now()
+ * stay current.
+ *
+ * @param {boolean} enabled
+ */
+function useTick(enabled) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!enabled) {
+      return undefined;
+    }
+    const interval = setInterval(() => setTick(tick => tick + 1), TICK_MS);
+    return () => clearInterval(interval);
+  }, [enabled]);
+}
+
+/**
+ * Watches the current match for score changes and the final whistle, for the
+ * live region and the goal highlight. Nothing fires on the first render, only
+ * on changes this page sees.
+ *
+ * @param {object|null} match - The current match.
+ * @param {string} phase - One of PHASES.
+ * @param {string} teamKey - Wrexham's key.
+ * @returns {{announcement: object|null, flash: number}}
+ */
+function useScoreChanges(match, phase, teamKey) {
+  const previous = useRef(null);
+  const [announcement, setAnnouncement] = useState(null);
+  const [flash, setFlash] = useState(0);
+  const id = match?.id;
+  const home = match?.home_score;
+  const away = match?.away_score;
+
+  useEffect(() => {
+    const prev = previous.current;
+    previous.current = { id, home, away, phase };
+    // Kickoff, when the score first appears, isn't a change.
+    if (
+      !prev ||
+      prev.id !== id ||
+      !Number.isFinite(home) ||
+      !Number.isFinite(prev.home)
+    ) {
+      return;
+    }
+    const args = {
+      home: match.home_team?.name ?? "",
+      away: match.away_team?.name ?? "",
+      homeScore: home,
+      awayScore: away,
+    };
+    if (phase === PHASES.FULLTIME && prev.phase === PHASES.LIVE) {
+      setAnnouncement(current => ({
+        seq: (current?.seq ?? 0) + 1,
+        l10nId: "newtab-wrexham-widget-announce-full-time",
+        args: { ...args, result: getResultForTeam(match, teamKey) },
+      }));
+      return;
+    }
+    if (home === prev.home && away === prev.away) {
+      return;
+    }
+    // Credit the side whose score went up; a correction just reads the score.
+    let scorer = null;
+    if (home > prev.home && away === prev.away) {
+      scorer = args.home;
+    } else if (away > prev.away && home === prev.home) {
+      scorer = args.away;
+    }
+    setAnnouncement(current => ({
+      seq: (current?.seq ?? 0) + 1,
+      l10nId: scorer
+        ? "newtab-wrexham-widget-announce-goal"
+        : "newtab-wrexham-widget-announce-score",
+      args: scorer ? { ...args, team: scorer } : args,
+    }));
+    setFlash(count => count + 1);
+    // The match object changes with every update; only these values matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, home, away, phase]);
+
+  return { announcement, flash };
+}
 
 const USER_ACTION_TYPES = {
   CHANGE_SIZE: "change_size",
@@ -135,10 +228,19 @@ function TeamBlock({ team, teamKey, nameId }) {
   );
 }
 
-function Score({ match }) {
+/**
+ * The score. Keyed by flash count, so each score change remounts it and
+ * replays the highlight; the first render doesn't highlight.
+ *
+ * @param {object} props
+ * @param {object} props.match
+ * @param {number} [props.flash] - How many score changes this page has seen.
+ */
+function Score({ match, flash = 0 }) {
   return (
     <span
-      className="wrexham-score"
+      key={flash}
+      className={`wrexham-score${flash ? " wrexham-score-changed" : ""}`}
       data-l10n-id="newtab-wrexham-widget-score"
       data-l10n-args={JSON.stringify({
         home: match.home_score,
@@ -375,12 +477,22 @@ function KickoffZone({ kickoff }) {
   );
 }
 
-function Kickoff({ kickoff }) {
+// "Kicks off in 3h 12m", then the kickoff time in the fan's zone and Wrexham's.
+function Kickoff({ match, now }) {
+  const kickoff = Date.parse(match.date);
+  const countdown = getCountdown(kickoff, now);
+  let countdownL10nId = "newtab-wrexham-widget-countdown";
+  if (match.status === "Delayed") {
+    countdownL10nId = "newtab-wrexham-widget-countdown-delayed";
+  } else if (!countdown) {
+    countdownL10nId = "newtab-wrexham-widget-countdown-now";
+  }
   return (
     <div className="wrexham-kickoff">
       <p
-        className="wrexham-kickoff-label"
-        data-l10n-id="newtab-wrexham-widget-kickoff-label"
+        className="wrexham-countdown"
+        data-l10n-id={countdownL10nId}
+        data-l10n-args={countdown ? JSON.stringify(countdown) : undefined}
       />
       <p
         className="wrexham-kickoff-time"
@@ -392,27 +504,70 @@ function Kickoff({ kickoff }) {
   );
 }
 
-// Each team's scorers sit under that team, and the list is named after it so
-// screen readers don't rely on the column position.
+// "Updated just now" while a match is in play, from Merino's `updated`.
+function UpdatedCue({ match, now }) {
+  const minutes = getMinutesSinceUpdate(match, now);
+  if (minutes === null) {
+    return null;
+  }
+  return (
+    <p
+      className="wrexham-updated"
+      data-l10n-id="newtab-wrexham-widget-updated"
+      data-l10n-args={JSON.stringify({ minutes })}
+    />
+  );
+}
+
+function MatchEvent({ event }) {
+  const minute = event.minute_extra
+    ? `${event.minute}+${event.minute_extra}`
+    : event.minute;
+  if (event.kind === "red_card") {
+    return (
+      <li className="wrexham-event wrexham-event-red-card">
+        <span className="wrexham-card-icon" aria-hidden="true" />
+        <span
+          className="sr-only"
+          data-l10n-id="newtab-wrexham-widget-red-card-label"
+        />
+        <span
+          data-l10n-id="newtab-wrexham-widget-red-card"
+          data-l10n-args={JSON.stringify({ player: event.player, minute })}
+        />
+      </li>
+    );
+  }
+  return (
+    <li
+      className="wrexham-event wrexham-event-goal"
+      data-l10n-id="newtab-wrexham-widget-goal"
+      data-l10n-args={JSON.stringify({
+        player: event.player,
+        minute,
+        type: event.type ?? "goal",
+      })}
+    />
+  );
+}
+
+// Each team's scorers and red cards sit under that team, and the list is named
+// after it so screen readers don't rely on the column position.
 function Goals({ match }) {
-  if (!match.goals?.length) {
+  if (!match.goals?.length && !match.red_cards?.length) {
     return null;
   }
   const renderGoals = (teamKey, className, labelId) => {
-    const goals = match.goals.filter(goal => goal.team_key === teamKey);
-    if (!goals.length) {
+    const events = getTeamEvents(match, teamKey);
+    if (!events.length) {
       return <div className={className} />;
     }
     return (
       <ul className={className} aria-labelledby={labelId}>
-        {goals.map(goal => (
-          <li
-            key={`${goal.player}-${goal.minute}`}
-            data-l10n-id="newtab-wrexham-widget-goal"
-            data-l10n-args={JSON.stringify({
-              player: goal.player,
-              minute: goal.minute,
-            })}
+        {events.map(event => (
+          <MatchEvent
+            key={`${event.kind}-${event.player}-${event.minute}`}
+            event={event}
           />
         ))}
       </ul>
@@ -451,7 +606,15 @@ function PositionLine({ standings, teamKey, leagueName }) {
   );
 }
 
-function MatchPanel({ match, phase, teamKey, standings, leagueName }) {
+function MatchPanel({
+  match,
+  phase,
+  teamKey,
+  standings,
+  leagueName,
+  now,
+  scoreFlash,
+}) {
   if (!match) {
     return (
       <p
@@ -472,7 +635,7 @@ function MatchPanel({ match, phase, teamKey, standings, leagueName }) {
         />
         <div className="wrexham-match-centre">
           {hasScore ? (
-            <Score match={match} />
+            <Score match={match} flash={scoreFlash} />
           ) : (
             <span
               className="wrexham-versus"
@@ -490,11 +653,6 @@ function MatchPanel({ match, phase, teamKey, standings, leagueName }) {
           nameId="wrexham-away-team-name"
         />
       </div>
-      {hasScore ? (
-        <Goals match={match} />
-      ) : (
-        <Kickoff kickoff={Date.parse(match.date)} />
-      )}
       {phase === PHASES.FULLTIME && (
         <PositionLine
           standings={standings}
@@ -502,6 +660,8 @@ function MatchPanel({ match, phase, teamKey, standings, leagueName }) {
           leagueName={leagueName}
         />
       )}
+      {hasScore ? <Goals match={match} /> : <Kickoff match={match} now={now} />}
+      {phase === PHASES.LIVE && <UpdatedCue match={match} now={now} />}
     </div>
   );
 }
@@ -724,7 +884,7 @@ function CompactSummary({ data, teamKey }) {
 
 // The medium size has no tabs: the match on matchday, the next match on other
 // days. The footer below it links to the matching page.
-function CompactView({ data, phase, match, teamKey, now }) {
+function CompactView({ data, phase, match, teamKey, now, scoreFlash }) {
   if (phase === PHASES.OFFDAY) {
     const kickoff = match && Date.parse(match.date);
     return (
@@ -769,7 +929,7 @@ function CompactView({ data, phase, match, teamKey, now }) {
       </span>
       <span className="wrexham-match-centre">
         {hasScore ? (
-          <Score match={match} />
+          <Score match={match} flash={scoreFlash} />
         ) : (
           <span
             className="wrexham-compact-kickoff"
@@ -822,9 +982,15 @@ const Wrexham = ({
   const isLarge = widgetSize === "large";
 
   const teamKey = data?.team?.key;
+  useTick(usePageVisible() && !!data);
   const now = Date.now();
   const phase = getWrexhamPhase(data?.focus_match, now);
   const match = getMatchForPhase(data, phase);
+  const { announcement, flash } = useScoreChanges(
+    data?.focus_match,
+    phase,
+    teamKey
+  );
   const competitionName =
     (phase !== PHASES.OFFDAY && data?.focus_match?.competition?.name) ||
     data?.league?.name;
@@ -972,6 +1138,8 @@ const Wrexham = ({
           teamKey={teamKey}
           standings={data?.standings}
           leagueName={data?.league?.name}
+          now={now}
+          scoreFlash={flash}
         />
       );
     footer = matchFooter;
@@ -1028,6 +1196,23 @@ const Wrexham = ({
         </div>
       </header>
 
+      {/* Present from the start, so screen readers hear only later changes:
+          goals and the final result. */}
+      <div
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {announcement && (
+          <span
+            key={announcement.seq}
+            data-l10n-id={announcement.l10nId}
+            data-l10n-args={JSON.stringify(announcement.args)}
+          />
+        )}
+      </div>
+
       {data && !isLarge && (
         <>
           <CompactView
@@ -1036,6 +1221,7 @@ const Wrexham = ({
             match={match}
             teamKey={teamKey}
             now={now}
+            scoreFlash={flash}
           />
           <a
             className="wrexham-footer-link"

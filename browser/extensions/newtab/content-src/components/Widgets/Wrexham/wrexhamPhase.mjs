@@ -126,6 +126,55 @@ export function getDefaultTab(_phase) {
 }
 
 /**
+ * Time left until kickoff, in whole hours and minutes.
+ *
+ * @param {number} kickoff - A ms epoch.
+ * @param {number} now - The current time, as a ms epoch.
+ * @returns {{hours: number, minutes: number}|null} Null when kickoff is less
+ *   than a minute away or has passed.
+ */
+export function getCountdown(kickoff, now) {
+  const totalMinutes = Math.floor((kickoff - now) / (60 * 1000));
+  if (totalMinutes < 1) {
+    return null;
+  }
+  return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 };
+}
+
+/**
+ * Whole minutes since a match's data last changed.
+ *
+ * @param {object} match - A match with `updated` in epoch seconds.
+ * @param {number} now - The current time, as a ms epoch.
+ * @returns {number|null} Null when the data doesn't say.
+ */
+export function getMinutesSinceUpdate(match, now) {
+  if (!Number.isFinite(match?.updated)) {
+    return null;
+  }
+  return Math.max(0, Math.floor((now - match.updated * 1000) / (60 * 1000)));
+}
+
+/**
+ * A team's goals and red cards in one list, in the order they happened.
+ *
+ * @param {object} match
+ * @param {string} teamKey
+ * @returns {Array<{kind: "goal"|"red_card", player: string, minute: number,
+ *   minute_extra?: number, type?: string}>}
+ */
+export function getTeamEvents(match, teamKey) {
+  const goals = (match?.goals ?? [])
+    .filter(goal => goal.team_key === teamKey)
+    .map(goal => ({ kind: "goal", ...goal }));
+  const cards = (match?.red_cards ?? [])
+    .filter(card => card.team_key === teamKey)
+    .map(card => ({ kind: "red_card", ...card }));
+  const order = event => event.minute * 100 + (event.minute_extra ?? 0);
+  return [...goals, ...cards].sort((a, b) => order(a) - order(b));
+}
+
+/**
  * Whole calendar days from today to a date, in the fan's own time zone: 0 for
  * later today, 1 for tomorrow.
  *
