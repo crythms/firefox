@@ -5,11 +5,14 @@
 import {
   PHASES,
   TABS,
+  getDaysUntil,
   getDefaultTab,
   getMatchClock,
   getMatchForPhase,
+  getOpponent,
   getPositionChange,
   getResultForTeam,
+  getScoreForTeam,
   getWrexhamPhase,
   isHalfTime,
 } from "content-src/components/Widgets/Wrexham/wrexhamPhase.mjs";
@@ -171,11 +174,52 @@ describe("getMatchClock", () => {
 });
 
 describe("getDefaultTab", () => {
-  it("opens on the match on matchday and the table otherwise", () => {
-    expect(getDefaultTab(PHASES.PREMATCH)).toBe(TABS.MATCH);
-    expect(getDefaultTab(PHASES.LIVE)).toBe(TABS.MATCH);
-    expect(getDefaultTab(PHASES.FULLTIME)).toBe(TABS.MATCH);
-    expect(getDefaultTab(PHASES.OFFDAY)).toBe(TABS.TABLE);
+  it("opens on the Match tab in every phase", () => {
+    for (const phase of Object.values(PHASES)) {
+      expect(getDefaultTab(phase)).toBe(TABS.MATCH);
+    }
+  });
+});
+
+describe("getDaysUntil", () => {
+  it("counts calendar days in the fan's time zone", () => {
+    expect(getDaysUntil(localTime(10, 23, 59), localTime(10, 0, 1))).toBe(0);
+    expect(getDaysUntil(localTime(11, 0, 1), localTime(10, 23, 59))).toBe(1);
+    expect(getDaysUntil(localTime(14, 15), localTime(10, 12))).toBe(4);
+  });
+
+  it("is negative for a day that has passed", () => {
+    expect(getDaysUntil(localTime(7, 15), localTime(10, 12))).toBe(-3);
+  });
+});
+
+describe("getOpponent", () => {
+  it("names the other team and whether it was a home match", () => {
+    const fixture = match();
+    expect(getOpponent(fixture, "WRE")).toEqual({
+      opponent: { key: "DER" },
+      isHome: false,
+    });
+    expect(getOpponent(fixture, "DER")).toEqual({
+      opponent: { key: "WRE" },
+      isHome: true,
+    });
+    expect(getOpponent(fixture, "MID")).toBeNull();
+  });
+});
+
+describe("getScoreForTeam", () => {
+  it("puts the team's own goals first", () => {
+    const scored = match({ home_score: 1, away_score: 2 });
+    expect(getScoreForTeam(scored, "WRE")).toEqual({ ours: 2, theirs: 1 });
+    expect(getScoreForTeam(scored, "DER")).toEqual({ ours: 1, theirs: 2 });
+  });
+
+  it("is null before kickoff or for a team that didn't play", () => {
+    expect(getScoreForTeam(match(), "WRE")).toBeNull();
+    expect(
+      getScoreForTeam(match({ home_score: 1, away_score: 0 }), "MID")
+    ).toBeNull();
   });
 });
 

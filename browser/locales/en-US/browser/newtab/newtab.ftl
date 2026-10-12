@@ -1899,6 +1899,50 @@ newtab-wrexham-widget-position-same =
        *[other] Stays { $position }th in the { $league }
     }
 
+## Match tab on days without a match: the last result, recent form and the
+## next match.
+
+# Short labels in front of each part of the Match tab.
+newtab-wrexham-widget-last-result-label = Last
+newtab-wrexham-widget-form-label = Form
+newtab-wrexham-widget-next-match-label = Next
+# The last result, with Wrexham's goals first.
+# Variables:
+#   $ours (Number) - Goals scored by Wrexham.
+#   $theirs (Number) - Goals scored by the other team.
+#   $opponent (String) - The other team's name.
+newtab-wrexham-widget-last-result = { $ours }–{ $theirs } v { $opponent }
+# The accessible name of the list of Wrexham's recent results.
+# Variables:
+#   $count (Number) - How many results the list shows, like 5.
+newtab-wrexham-widget-form-list =
+    .aria-label =
+        { $count ->
+            [one] Last result
+           *[other] Last { $count } results, oldest first
+        }
+# One-letter results in the form list. Screen readers hear the full word
+# (newtab-wrexham-widget-result-win, -draw, -loss) instead.
+newtab-wrexham-widget-form-win = W
+newtab-wrexham-widget-form-draw = D
+newtab-wrexham-widget-form-loss = L
+# Who Wrexham play next, and whether at home or away.
+# Variables:
+#   $opponent (String) - The other team's name.
+newtab-wrexham-widget-opponent-home = v { $opponent } (home)
+newtab-wrexham-widget-opponent-away = v { $opponent } (away)
+# When the next match is, in the user's own time zone, like "Tue · in 4 days".
+# Variables:
+#   $date (Date) - The kickoff time.
+#   $days (Number) - Calendar days from today until the match: 0 for today,
+#   1 for tomorrow.
+newtab-wrexham-widget-relative-day =
+    { $days ->
+        [0] Today
+        [1] { DATETIME($date, weekday: "short") } · tomorrow
+       *[other] { DATETIME($date, weekday: "short") } · in { $days } days
+    }
+
 ## Table tab. Column headings are abbreviated to fit; .title and .aria-label
 ## hold the full name.
 
@@ -1922,20 +1966,6 @@ newtab-wrexham-widget-table-points = Pts
     .aria-label = Points
 newtab-wrexham-widget-no-table = The table will show here once it’s available
 
-# The accessible name of the link in the smaller widget size, which shows
-# Wrexham's row of the league table and opens the full table on the club's
-# website.
-# Variables:
-#   $position (Number) - The club's place in the table, like 7.
-#   $points (Number) - The club's points, like 18.
-#   $league (String) - The name of the league, like "Championship".
-newtab-wrexham-widget-compact-table =
-    .aria-label =
-        { $points ->
-            [one] Wrexham, position { $position } in the { $league }, { $points } point. Full table
-           *[other] Wrexham, position { $position } in the { $league }, { $points } points. Full table
-        }
-
 ## Fixtures tab
 ## Variables:
 ##   $date (Date) - The kickoff time of a match.
@@ -1946,6 +1976,39 @@ newtab-wrexham-widget-fixtures-heading = Gameweek { $number } · your time
 newtab-wrexham-widget-fixture-day = { DATETIME($date, weekday: "short", month: "short", day: "numeric") }
 newtab-wrexham-widget-fixture-time = { DATETIME($date, hour: "numeric", minute: "2-digit") }
 newtab-wrexham-widget-no-fixtures = Fixtures will show here once they’re announced
+# Button that shows or hides the rest of the round's fixtures, below
+# Wrexham's own.
+# Variables:
+#   $league (String) - The name of the league, like "Championship".
+#   $count (Number) - How many other fixtures there are, like 11.
+newtab-wrexham-widget-fixtures-others = Other { $league } fixtures ({ $count })
+
+## Smaller widget size, which shows one match without tabs.
+
+# Wrexham's last result on days without a match, like "Last: W 2–1 v Derby
+# County". W, D and L are short for win, draw and loss.
+# Variables:
+#   $result (String) - "win", "draw" or "loss".
+#   $ours (Number) - Goals scored by Wrexham.
+#   $theirs (Number) - Goals scored by the other team.
+#   $opponent (String) - The other team's name.
+newtab-wrexham-widget-compact-last =
+    { $result ->
+        [win] Last: W { $ours }–{ $theirs } v { $opponent }
+        [draw] Last: D { $ours }–{ $theirs } v { $opponent }
+       *[loss] Last: L { $ours }–{ $theirs } v { $opponent }
+    }
+# Wrexham's place in the league table and points, like "7th, 18 pts".
+# Variables:
+#   $position (Number) - The club's place in the table, like 7.
+#   $points (Number) - The club's points, like 18.
+newtab-wrexham-widget-compact-position =
+    { NUMBER($position, type: "ordinal") ->
+        [one] { $position }st, { $points } pts
+        [two] { $position }nd, { $points } pts
+        [few] { $position }rd, { $points } pts
+       *[other] { $position }th, { $points } pts
+    }
 
 ## Links to pages on the club’s website, shown at the bottom of the widget.
 

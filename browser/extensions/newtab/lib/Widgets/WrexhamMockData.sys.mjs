@@ -236,6 +236,26 @@ export function buildMockData(scenario, now) {
     { team_key: WREXHAM_KEY, player: "O. Rhys", minute: 58 },
   ];
 
+  // Wrexham's previous match, three days ago.
+  const lastKickoff = wrexhamWallClock(now, -3, 15);
+  const southamptonHome = buildMatch({
+    id: 1198,
+    home: WREXHAM_KEY,
+    away: "SOU",
+    venue: "Racecourse Ground",
+    kickoff: lastKickoff,
+    status_type: "past",
+    status: "Final",
+    period: "FT",
+    clock: "90+3",
+    home_score: 2,
+    away_score: 1,
+    goals: [],
+    updated: epochSeconds(lastKickoff + 115 * MINUTE),
+  });
+  // Oldest first; the last is the win over Southampton.
+  const formBefore = ["draw", "loss", "win", "draw", "win"];
+
   let focus;
   let next;
   let wrexhamWon = false;
@@ -290,29 +310,13 @@ export function buildMockData(scenario, now) {
       next = null;
       wrexhamWon = true;
       break;
-    default: {
-      const lastKickoff = wrexhamWallClock(now, -3, 15);
-      focus = buildMatch({
-        id: 1198,
-        home: WREXHAM_KEY,
-        away: "SOU",
-        venue: "Racecourse Ground",
-        kickoff: lastKickoff,
-        status_type: "past",
-        status: "Final",
-        period: "FT",
-        clock: "90+3",
-        home_score: 2,
-        away_score: 1,
-        goals: [],
-        updated: epochSeconds(lastKickoff + 115 * MINUTE),
-      });
+    default:
+      focus = southamptonHome;
       next = buildMatch({
         ...derbyAway,
         kickoff: wrexhamWallClock(now, 4, 15),
       });
       break;
-    }
   }
 
   return {
@@ -320,6 +324,8 @@ export function buildMockData(scenario, now) {
     league: CHAMPIONSHIP,
     focus_match: focus,
     next_match: next,
+    last_match: wrexhamWon ? focus : southamptonHome,
+    form: wrexhamWon ? [...formBefore.slice(1), "win"] : formBefore,
     standings: buildStandings({ wrexhamWon }),
     gameweek: buildGameweek(scenario === "fulltime" ? focus : next),
   };

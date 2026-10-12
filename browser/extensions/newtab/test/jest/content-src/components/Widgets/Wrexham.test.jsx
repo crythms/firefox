@@ -9,6 +9,7 @@ import {
   Wrexham,
   WREXHAM_LINKS,
 } from "content-src/components/Widgets/Wrexham/Wrexham";
+import { getDaysUntil } from "content-src/components/Widgets/Wrexham/wrexhamPhase.mjs";
 import { buildMockData } from "lib/Widgets/WrexhamMockData.sys.mjs";
 import { WrapWithProvider } from "test/jest/test-utils";
 
@@ -47,10 +48,10 @@ const renderWidget = (stateOptions = {}, props = {}) => {
       />
     </WrapWithProvider>
   );
-  const { container, rerender } = render(ui(stateOptions));
+  const { container, rerender, unmount } = render(ui(stateOptions));
   // Swaps in new data, as a feed update would, keeping the same component.
   const rerenderWith = options => rerender(ui(options));
-  return { container, dispatch, handleUserInteraction, rerenderWith };
+  return { container, dispatch, handleUserInteraction, rerenderWith, unmount };
 };
 
 const args = el => JSON.parse(el.getAttribute("data-l10n-args"));
@@ -95,50 +96,117 @@ describe("Wrexham widget", () => {
   });
 
   describe("on an off day", () => {
-    it("opens on the table with Wrexham highlighted and no badge", () => {
+    it("opens on the Match tab with no badge", () => {
       const { container } = renderWidget({ scenario: "offday" });
-      expect(selectedTab(container).id).toBe("wrexham-tab-table");
+      expect(selectedTab(container).id).toBe("wrexham-tab-match");
       expect(container.querySelector(".wrexham-badge")).toBeNull();
-      expect(
-        container.querySelectorAll(".wrexham-table tbody tr")
-      ).toHaveLength(24);
-      const highlight = container.querySelector(".wrexham-table-row-highlight");
-      expect(highlight.textContent).toContain("Wrexham");
+      expect(container.querySelector(".wrexham-offday")).toBeTruthy();
       expect(container.querySelector(".wrexham-competition").textContent).toBe(
         "Championship"
       );
     });
 
-    it("links the footer to the full table", () => {
+    it("shows the last result with its chip, Wrexham's goals first", () => {
       const { container } = renderWidget({ scenario: "offday" });
-      expect(footer(container).getAttribute("href")).toBe(WREXHAM_LINKS.table);
-      expect(footer(container).getAttribute("data-l10n-id")).toBe(
-        "newtab-wrexham-widget-link-table"
-      );
+      const row = container.querySelector(".wrexham-offday-row");
+      expect(
+        row.querySelector(".wrexham-result").getAttribute("data-l10n-id")
+      ).toBe("newtab-wrexham-widget-result-win");
+      expect(
+        args(
+          row.querySelector(
+            "[data-l10n-id='newtab-wrexham-widget-last-result']"
+          )
+        )
+      ).toEqual({ ours: 2, theirs: 1, opponent: "Southampton" });
     });
 
-    it("previews the next match on the Match tab", () => {
+    it("shows the last five results as a labelled form strip", () => {
       const { container } = renderWidget({ scenario: "offday" });
-      fireEvent.click(container.querySelector("#wrexham-tab-match"));
-      expect(container.querySelector(".wrexham-kickoff")).toBeTruthy();
-      expect(container.querySelector(".wrexham-match").textContent).toContain(
-        "Derby County"
+      const strip = container.querySelector("ol.wrexham-form");
+      expect(strip.getAttribute("data-l10n-id")).toBe(
+        "newtab-wrexham-widget-form-list"
       );
+      expect(args(strip)).toEqual({ count: 5 });
+      const chips = [...strip.querySelectorAll("li")];
+      expect(
+        chips.map(
+          chip => chip.className.match(/wrexham-result-(win|draw|loss)/)[1]
+        )
+      ).toEqual(["draw", "loss", "win", "draw", "win"]);
+      expect(
+        chips[0].querySelector(".sr-only").getAttribute("data-l10n-id")
+      ).toBe("newtab-wrexham-widget-result-draw");
+    });
+
+    it("shows the next match with a relative day above the kickoff time", () => {
+      const data = buildMockData("offday", NOW);
+      const { container } = renderWidget({ data });
+      const next = container.querySelector(".wrexham-offday-next");
+      const opponent = next.querySelector(".wrexham-offday-opponent");
+      expect(opponent.getAttribute("data-l10n-id")).toBe(
+        "newtab-wrexham-widget-opponent-away"
+      );
+      expect(args(opponent)).toEqual({ opponent: "Derby County" });
+      const kickoff = Date.parse(data.next_match.date);
+      const when = next.querySelector(".wrexham-offday-when");
+      expect(args(when)).toEqual({
+        date: kickoff,
+        days: getDaysUntil(kickoff, NOW),
+      });
+      const time = next.querySelector(".wrexham-offday-time");
+      expect(args(time)).toEqual({ date: kickoff });
+      expect(
+        when.compareDocumentPosition(time) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
       expect(footer(container).getAttribute("data-l10n-id")).toBe(
         "newtab-wrexham-widget-link-match-preview"
       );
     });
 
-    it("lists the gameweek on the Fixtures tab with Wrexham's fixture highlighted", () => {
+    it("keeps the Table tab, with Wrexham highlighted", () => {
+      const { container } = renderWidget({ scenario: "offday" });
+      fireEvent.click(container.querySelector("#wrexham-tab-table"));
+      expect(
+        container.querySelectorAll(".wrexham-table tbody tr")
+      ).toHaveLength(24);
+      expect(
+        container.querySelector(".wrexham-table-row-highlight").textContent
+      ).toContain("Wrexham");
+      expect(footer(container).getAttribute("href")).toBe(WREXHAM_LINKS.table);
+    });
+
+    it("pins Wrexham's fixture above the others, which start collapsed", () => {
       const { container } = renderWidget({ scenario: "offday" });
       fireEvent.click(container.querySelector("#wrexham-tab-fixtures"));
-      expect(container.querySelectorAll(".wrexham-fixture")).toHaveLength(12);
+      const fixtures = container.querySelector(".wrexham-fixtures");
+      const firstRow = fixtures.querySelector(".wrexham-fixture");
+      expect(firstRow.classList).toContain("wrexham-fixture-highlight");
+      expect(firstRow.textContent).toContain("Wrexham");
+      const others = fixtures.querySelector("details.wrexham-fixtures-others");
+      expect(others.open).toBe(false);
+      expect(args(others.querySelector("summary"))).toEqual({
+        league: "Championship",
+        count: 11,
+      });
+      expect(others.querySelectorAll(".wrexham-fixture")).toHaveLength(11);
       expect(
         container.querySelectorAll(".wrexham-fixture-highlight")
       ).toHaveLength(1);
       expect(footer(container).getAttribute("href")).toBe(
         WREXHAM_LINKS.fixtures
       );
+    });
+
+    it("lists every fixture openly when Wrexham aren't in the round", () => {
+      const data = buildMockData("offday", NOW);
+      data.gameweek.matches = data.gameweek.matches.filter(
+        match => match.home_team.key !== "WRE" && match.away_team.key !== "WRE"
+      );
+      const { container } = renderWidget({ data });
+      fireEvent.click(container.querySelector("#wrexham-tab-fixtures"));
+      expect(container.querySelector("details")).toBeNull();
+      expect(container.querySelectorAll(".wrexham-fixture")).toHaveLength(11);
     });
   });
 
@@ -300,7 +368,7 @@ describe("Wrexham widget", () => {
       data.focus_match.status = "Postponed";
       const { container } = renderWidget({ data });
       expect(container.querySelector(".wrexham-badge")).toBeNull();
-      expect(selectedTab(container).id).toBe("wrexham-tab-table");
+      expect(container.querySelector(".wrexham-offday")).toBeTruthy();
     });
 
     it("stays on matchday when the kickoff is delayed", () => {
@@ -371,14 +439,29 @@ describe("Wrexham widget", () => {
       const tabIndexes = [...container.querySelectorAll("[role='tab']")].map(
         tab => tab.tabIndex
       );
-      expect(tabIndexes).toEqual([-1, 0, -1]);
+      expect(tabIndexes).toEqual([0, -1, -1]);
     });
 
-    it("follows the match state until the user interacts", () => {
+    it("opens on the Match tab in every scenario", () => {
+      for (const scenario of [
+        "prematch",
+        "live",
+        "halftime",
+        "fulltime",
+        "offday",
+      ]) {
+        const { container, unmount } = renderWidget({ scenario });
+        expect(selectedTab(container).id).toBe("wrexham-tab-match");
+        unmount();
+      }
+    });
+
+    it("updates the Match tab when the match state changes", () => {
       const { container, rerenderWith } = renderWidget({ scenario: "offday" });
-      expect(selectedTab(container).id).toBe("wrexham-tab-table");
+      expect(container.querySelector(".wrexham-offday")).toBeTruthy();
       rerenderWith({ scenario: "live" });
-      expect(selectedTab(container).id).toBe("wrexham-tab-match");
+      expect(container.querySelector(".wrexham-offday")).toBeNull();
+      expect(container.querySelector(".wrexham-score")).toBeTruthy();
     });
 
     it("keeps the user's tab when the match state changes", () => {
@@ -386,13 +469,6 @@ describe("Wrexham widget", () => {
       fireEvent.click(container.querySelector("#wrexham-tab-fixtures"));
       rerenderWith({ scenario: "live" });
       expect(selectedTab(container).id).toBe("wrexham-tab-fixtures");
-    });
-
-    it("keeps the panel still once focus is in the widget", () => {
-      const { container, rerenderWith } = renderWidget({ scenario: "offday" });
-      act(() => footer(container).focus());
-      rerenderWith({ scenario: "live" });
-      expect(selectedTab(container).id).toBe("wrexham-tab-table");
     });
 
     it("doesn't take focus later after Home on the first tab", () => {
@@ -414,6 +490,7 @@ describe("Wrexham widget", () => {
   describe("table", () => {
     it("names the table and gives it full column names and row headers", () => {
       const { container } = renderWidget({ scenario: "offday" });
+      fireEvent.click(container.querySelector("#wrexham-tab-table"));
       const table = container.querySelector(".wrexham-table");
       expect(table.getAttribute("data-l10n-id")).toBe(
         "newtab-wrexham-widget-table"
@@ -433,6 +510,7 @@ describe("Wrexham widget", () => {
       const data = buildMockData("offday", NOW);
       data.standings = [];
       const { container } = renderWidget({ data });
+      fireEvent.click(container.querySelector("#wrexham-tab-table"));
       expect(container.querySelector(".wrexham-table")).toBeNull();
       expect(
         container.querySelector(".wrexham-empty").getAttribute("data-l10n-id")
@@ -451,61 +529,108 @@ describe("Wrexham widget", () => {
   });
 
   describe("medium size", () => {
-    it("shows Wrexham's corner of the table on an off day", () => {
-      const { container } = renderWidget({
-        scenario: "offday",
-        size: "medium",
-      });
+    it("shows the next match and a summary line on an off day", () => {
+      const data = buildMockData("offday", NOW);
+      const { container } = renderWidget({ data, size: "medium" });
       expect(container.querySelector("[role='tablist']")).toBeNull();
-      const link = container.querySelector(".wrexham-compact-table");
-      expect(link.getAttribute("href")).toBe(WREXHAM_LINKS.table);
-      const rows = link.querySelectorAll("tbody tr");
-      expect(rows).toHaveLength(3);
-      expect(rows[1].classList).toContain("wrexham-table-row-highlight");
+      expect(container.querySelector(".wrexham-table")).toBeNull();
+      const compact = container.querySelector(".wrexham-compact-offday");
+      const opponent = compact.querySelector(".wrexham-compact-primary");
+      expect(opponent.getAttribute("data-l10n-id")).toBe(
+        "newtab-wrexham-widget-opponent-away"
+      );
+      expect(args(opponent)).toEqual({ opponent: "Derby County" });
+      const kickoff = Date.parse(data.next_match.date);
+      expect(
+        args(
+          compact.querySelector(
+            "[data-l10n-id='newtab-wrexham-widget-relative-day']"
+          )
+        )
+      ).toEqual({ date: kickoff, days: getDaysUntil(kickoff, NOW) });
+      expect(args(compact.querySelector(".wrexham-compact-when-time"))).toEqual(
+        { date: kickoff }
+      );
+      expect(
+        args(
+          compact.querySelector(
+            "[data-l10n-id='newtab-wrexham-widget-compact-last']"
+          )
+        )
+      ).toEqual({ result: "win", ours: 2, theirs: 1, opponent: "Southampton" });
+      expect(
+        args(
+          compact.querySelector(
+            "[data-l10n-id='newtab-wrexham-widget-compact-position']"
+          )
+        )
+      ).toEqual({ position: 7, points: 18 });
+      expect(footer(container).getAttribute("data-l10n-id")).toBe(
+        "newtab-wrexham-widget-link-match-preview"
+      );
+      expect(footer(container).getAttribute("href")).toBe(WREXHAM_LINKS.match);
     });
 
-    it("names the table link with a summary instead of the bare cells", () => {
-      const { container } = renderWidget({
-        scenario: "offday",
-        size: "medium",
-      });
-      const link = container.querySelector(".wrexham-compact-table");
-      expect(link.getAttribute("data-l10n-id")).toBe(
-        "newtab-wrexham-widget-compact-table"
-      );
-      expect(args(link)).toEqual({
-        position: 7,
-        points: 18,
-        league: "Championship",
-      });
-      expect(link.querySelector("table").getAttribute("aria-hidden")).toBe(
-        "true"
-      );
-    });
-
-    it("leaves out the table link when Wrexham isn't in the table", () => {
+    it("leaves out the table position when there's no table", () => {
       const data = buildMockData("offday", NOW);
       data.standings = [];
       const { container } = renderWidget({ data, size: "medium" });
-      expect(container.querySelector(".wrexham-compact")).toBeNull();
+      expect(
+        container.querySelector(
+          "[data-l10n-id='newtab-wrexham-widget-compact-position']"
+        )
+      ).toBeNull();
+      expect(
+        container.querySelector(
+          "[data-l10n-id='newtab-wrexham-widget-compact-last']"
+        )
+      ).toBeTruthy();
     });
 
-    it("shows the live score on matchday, linked to the match", () => {
+    it("adds the date to the kickoff time before a match", () => {
+      const data = buildMockData("prematch", NOW);
+      const { container } = renderWidget({ data, size: "medium" });
+      const date = container.querySelector(
+        "[data-l10n-id='newtab-wrexham-widget-match-date']"
+      );
+      expect(args(date)).toEqual({ date: Date.parse(data.focus_match.date) });
+    });
+
+    it("shows the live score with a link to the match centre", () => {
       const { container, dispatch } = renderWidget({
         scenario: "live",
         size: "medium",
       });
-      const link = container.querySelector(".wrexham-compact-match");
-      expect(link.getAttribute("href")).toBe(WREXHAM_LINKS.match);
-      expect(link.querySelector(".wrexham-score")).toBeTruthy();
-      expect(link.querySelector(".sr-only").getAttribute("data-l10n-id")).toBe(
+      expect(
+        container.querySelector(".wrexham-compact-match .wrexham-score")
+      ).toBeTruthy();
+      expect(container.querySelector(".wrexham-compact a")).toBeNull();
+      expect(footer(container).getAttribute("data-l10n-id")).toBe(
         "newtab-wrexham-widget-link-match-centre"
       );
-      fireEvent.click(link);
+      fireEvent.click(footer(container));
       expect(userEvents(dispatch, "open_link")[0].data).toMatchObject({
         widget_source: "compact",
         action_value: "match",
       });
+    });
+
+    it("gives every state a footer link", () => {
+      const expected = {
+        prematch: "newtab-wrexham-widget-link-match-preview",
+        live: "newtab-wrexham-widget-link-match-centre",
+        halftime: "newtab-wrexham-widget-link-match-centre",
+        fulltime: "newtab-wrexham-widget-link-match-report",
+        offday: "newtab-wrexham-widget-link-match-preview",
+      };
+      for (const [scenario, l10nId] of Object.entries(expected)) {
+        const { container, unmount } = renderWidget({
+          scenario,
+          size: "medium",
+        });
+        expect(footer(container).getAttribute("data-l10n-id")).toBe(l10nId);
+        unmount();
+      }
     });
   });
 

@@ -14,11 +14,14 @@ import {
   PHASES,
   TABS,
   TAB_ORDER,
+  getDaysUntil,
   getDefaultTab,
   getMatchClock,
   getMatchForPhase,
+  getOpponent,
   getPositionChange,
   getResultForTeam,
+  getScoreForTeam,
   getWrexhamPhase,
   isHalfTime,
 } from "./wrexhamPhase.mjs";
@@ -179,6 +182,135 @@ function ResultChip({ result }) {
   );
 }
 
+// "v Derby County (away)", from Wrexham's side.
+function OpponentText({ match, teamKey, className }) {
+  const side = getOpponent(match, teamKey);
+  if (!side) {
+    return null;
+  }
+  return (
+    <span
+      className={className}
+      data-l10n-id={
+        side.isHome
+          ? "newtab-wrexham-widget-opponent-home"
+          : "newtab-wrexham-widget-opponent-away"
+      }
+      data-l10n-args={JSON.stringify({ opponent: side.opponent?.name ?? "" })}
+    />
+  );
+}
+
+// "Tue · in 4 days", in the fan's own time zone.
+function RelativeDay({ date, now, className }) {
+  return (
+    <span
+      className={className}
+      data-l10n-id="newtab-wrexham-widget-relative-day"
+      data-l10n-args={JSON.stringify({ date, days: getDaysUntil(date, now) })}
+    />
+  );
+}
+
+function FormStrip({ form }) {
+  return (
+    <ol
+      className="wrexham-form"
+      data-l10n-id="newtab-wrexham-widget-form-list"
+      data-l10n-args={JSON.stringify({ count: form.length })}
+    >
+      {form.map((result, index) => (
+        <li
+          // Results have no ids, and the order never changes.
+          key={index}
+          className={`wrexham-result wrexham-result-${result} wrexham-form-chip`}
+        >
+          <span
+            aria-hidden="true"
+            data-l10n-id={`newtab-wrexham-widget-form-${result}`}
+          />
+          <span
+            className="sr-only"
+            data-l10n-id={`newtab-wrexham-widget-result-${result}`}
+          />
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+// The Match tab on days without a match: the last result and form, then the
+// next match. Laid out as a label column and a content column.
+function OffdayPanel({ data, teamKey, now }) {
+  const last = data.last_match;
+  const lastScore = last && getScoreForTeam(last, teamKey);
+  const lastSide = last && getOpponent(last, teamKey);
+  const next = data.next_match;
+  const nextKickoff = next && Date.parse(next.date);
+  return (
+    <div className="wrexham-offday">
+      {lastScore && lastSide && (
+        <>
+          <span
+            className="wrexham-offday-label"
+            data-l10n-id="newtab-wrexham-widget-last-result-label"
+          />
+          <p className="wrexham-offday-row">
+            <ResultChip result={getResultForTeam(last, teamKey)} />
+            <span
+              data-l10n-id="newtab-wrexham-widget-last-result"
+              data-l10n-args={JSON.stringify({
+                ours: lastScore.ours,
+                theirs: lastScore.theirs,
+                opponent: lastSide.opponent?.name ?? "",
+              })}
+            />
+          </p>
+        </>
+      )}
+      {data.form?.length > 0 && (
+        <>
+          <span
+            className="wrexham-offday-label"
+            aria-hidden="true"
+            data-l10n-id="newtab-wrexham-widget-form-label"
+          />
+          <FormStrip form={data.form} />
+        </>
+      )}
+      <span
+        className="wrexham-offday-label wrexham-offday-next-label"
+        data-l10n-id="newtab-wrexham-widget-next-match-label"
+      />
+      {next ? (
+        <div className="wrexham-offday-next">
+          <OpponentText
+            match={next}
+            teamKey={teamKey}
+            className="wrexham-offday-opponent"
+          />
+          <RelativeDay
+            date={nextKickoff}
+            now={now}
+            className="wrexham-offday-when"
+          />
+          <span
+            className="wrexham-offday-time"
+            data-l10n-id="newtab-wrexham-widget-kickoff-time"
+            data-l10n-args={JSON.stringify({ date: nextKickoff })}
+          />
+          <KickoffZone kickoff={nextKickoff} />
+        </div>
+      ) : (
+        <p
+          className="wrexham-offday-next wrexham-offday-when"
+          data-l10n-id="newtab-wrexham-widget-no-match"
+        />
+      )}
+    </div>
+  );
+}
+
 function StatusBadge({ phase, match }) {
   if (!match || phase === PHASES.OFFDAY) {
     return null;
@@ -223,8 +355,27 @@ function MatchMeta({ match }) {
   );
 }
 
-function Kickoff({ kickoff }) {
+// "Eastern Time · 3:00 PM in Wrexham", or just the zone name when the fan's
+// clock already matches Wrexham's.
+function KickoffZone({ kickoff }) {
   const clubTime = getClubWallClock(kickoff);
+  return (
+    <span
+      className="wrexham-kickoff-zone"
+      data-l10n-id={
+        clubTime === null
+          ? "newtab-wrexham-widget-kickoff-zone"
+          : "newtab-wrexham-widget-kickoff-zone-club"
+      }
+      data-l10n-args={JSON.stringify({
+        timeZone: getTimeZoneName(kickoff),
+        clubTime,
+      })}
+    />
+  );
+}
+
+function Kickoff({ kickoff }) {
   return (
     <div className="wrexham-kickoff">
       <p
@@ -236,18 +387,7 @@ function Kickoff({ kickoff }) {
         data-l10n-id="newtab-wrexham-widget-kickoff-time"
         data-l10n-args={JSON.stringify({ date: kickoff })}
       />
-      <p
-        className="wrexham-kickoff-zone"
-        data-l10n-id={
-          clubTime === null
-            ? "newtab-wrexham-widget-kickoff-zone"
-            : "newtab-wrexham-widget-kickoff-zone-club"
-        }
-        data-l10n-args={JSON.stringify({
-          timeZone: getTimeZoneName(kickoff),
-          clubTime,
-        })}
-      />
+      <KickoffZone kickoff={kickoff} />
     </div>
   );
 }
@@ -373,17 +513,14 @@ function MatchPanel({ match, phase, teamKey, standings, leagueName }) {
  * @param {Array<object>} props.rows - Standings rows to show.
  * @param {string} props.teamKey - Wrexham's key, to highlight its row.
  * @param {string} props.leagueName - Names the table for screen readers.
- * @param {boolean} [props.hidden] - Hides the table from assistive technology,
- *   for when a link around it already summarizes it.
  */
-function StandingsTable({ rows, teamKey, leagueName, hidden = false, ref }) {
+function StandingsTable({ rows, teamKey, leagueName, ref }) {
   return (
     <table
       ref={ref}
       className="wrexham-table"
       data-l10n-id="newtab-wrexham-widget-table"
       data-l10n-args={JSON.stringify({ league: leagueName ?? "" })}
-      aria-hidden={hidden || undefined}
     >
       <thead>
         <tr>
@@ -464,7 +601,35 @@ function TablePanel({ standings, teamKey, leagueName }) {
   );
 }
 
-function FixturesPanel({ gameweek, teamKey }) {
+function FixtureRow({ match, highlight = false }) {
+  const date = Date.parse(match.date);
+  return (
+    <li
+      className={`wrexham-fixture${highlight ? " wrexham-fixture-highlight" : ""}`}
+    >
+      <span className="wrexham-fixture-team wrexham-fixture-home">
+        {match.home_team?.name}
+      </span>
+      <span className="wrexham-fixture-time">
+        <span
+          data-l10n-id="newtab-wrexham-widget-fixture-day"
+          data-l10n-args={JSON.stringify({ date })}
+        />
+        <span
+          data-l10n-id="newtab-wrexham-widget-fixture-time"
+          data-l10n-args={JSON.stringify({ date })}
+        />
+      </span>
+      <span className="wrexham-fixture-team wrexham-fixture-away">
+        {match.away_team?.name}
+      </span>
+    </li>
+  );
+}
+
+// Wrexham's own fixture first, then the rest of the round behind a disclosure
+// that starts closed.
+function FixturesPanel({ gameweek, teamKey, leagueName }) {
   if (!gameweek?.matches?.length) {
     return (
       <p
@@ -473,6 +638,15 @@ function FixturesPanel({ gameweek, teamKey }) {
       />
     );
   }
+  const ours = gameweek.matches.find(match => getOpponent(match, teamKey));
+  const others = gameweek.matches.filter(match => match !== ours);
+  const otherRows = (
+    <ul className="wrexham-fixtures-list">
+      {others.map(match => (
+        <FixtureRow key={match.id} match={match} />
+      ))}
+    </ul>
+  );
   return (
     <div className="wrexham-fixtures">
       <h3
@@ -480,74 +654,106 @@ function FixturesPanel({ gameweek, teamKey }) {
         data-l10n-id="newtab-wrexham-widget-fixtures-heading"
         data-l10n-args={JSON.stringify({ number: gameweek.number })}
       />
-      <ul className="wrexham-fixtures-list">
-        {gameweek.matches.map(match => {
-          const date = Date.parse(match.date);
-          const isOurs =
-            match.home_team?.key === teamKey ||
-            match.away_team?.key === teamKey;
-          return (
-            <li
-              key={match.id}
-              className={`wrexham-fixture${isOurs ? " wrexham-fixture-highlight" : ""}`}
-            >
-              <span className="wrexham-fixture-team wrexham-fixture-home">
-                {match.home_team?.name}
-              </span>
-              <span className="wrexham-fixture-time">
-                <span
-                  data-l10n-id="newtab-wrexham-widget-fixture-day"
-                  data-l10n-args={JSON.stringify({ date })}
-                />
-                <span
-                  data-l10n-id="newtab-wrexham-widget-fixture-time"
-                  data-l10n-args={JSON.stringify({ date })}
-                />
-              </span>
-              <span className="wrexham-fixture-team wrexham-fixture-away">
-                {match.away_team?.name}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+      {ours && (
+        <ul className="wrexham-fixtures-list">
+          <FixtureRow match={ours} highlight={true} />
+        </ul>
+      )}
+      {ours && !!others.length && (
+        <details className="wrexham-fixtures-others">
+          <summary
+            data-l10n-id="newtab-wrexham-widget-fixtures-others"
+            data-l10n-args={JSON.stringify({
+              league: leagueName ?? "",
+              count: others.length,
+            })}
+          />
+          {otherRows}
+        </details>
+      )}
+      {!ours && otherRows}
     </div>
   );
 }
 
-// The medium size has no tabs: the match on matchday, Wrexham's corner of the
-// table otherwise. The whole view links to the matching page, and its name
-// says where the link goes.
-function CompactView({ data, phase, match, teamKey, onLinkClick }) {
-  if (phase === PHASES.OFFDAY) {
-    const standings = data.standings ?? [];
-    const index = standings.findIndex(row => row.team.key === teamKey);
-    if (index === -1) {
-      return null;
-    }
-    const start = Math.min(
-      Math.max(index - 1, 0),
-      Math.max(standings.length - 3, 0)
-    );
-    // The slice has no column headers, so the link carries a summary instead.
-    return (
-      <a
-        className="wrexham-compact wrexham-compact-table"
-        href={WREXHAM_LINKS.table}
-        onClick={() => onLinkClick("table", "compact")}
-        data-l10n-id="newtab-wrexham-widget-compact-table"
+// The medium size's secondary line on other days: "Last: W 2–1 v Southampton ·
+// 7th, 18 pts". Either half is left out if its data is missing.
+function CompactSummary({ data, teamKey }) {
+  const last = data.last_match;
+  const score = last && getScoreForTeam(last, teamKey);
+  const side = last && getOpponent(last, teamKey);
+  const row = data.standings?.find(entry => entry.team?.key === teamKey);
+  const parts = [];
+  if (score && side) {
+    parts.push(
+      <span
+        key="last"
+        data-l10n-id="newtab-wrexham-widget-compact-last"
         data-l10n-args={JSON.stringify({
-          position: standings[index].position,
-          points: standings[index].points,
-          league: data.league?.name ?? "",
+          result: getResultForTeam(last, teamKey),
+          ours: score.ours,
+          theirs: score.theirs,
+          opponent: side.opponent?.name ?? "",
         })}
-      >
-        <StandingsTable
-          rows={standings.slice(start, start + 3)}
-          teamKey={teamKey}
-          hidden={true}
-        />
-      </a>
+      />
+    );
+  }
+  if (row) {
+    parts.push(
+      <span
+        key="position"
+        data-l10n-id="newtab-wrexham-widget-compact-position"
+        data-l10n-args={JSON.stringify({
+          position: row.position,
+          points: row.points,
+        })}
+      />
+    );
+  }
+  if (!parts.length) {
+    return null;
+  }
+  return (
+    <p className="wrexham-compact-secondary">
+      {parts[0]}
+      {parts[1] && <span aria-hidden="true"> · </span>}
+      {parts[1]}
+    </p>
+  );
+}
+
+// The medium size has no tabs: the match on matchday, the next match on other
+// days. The footer below it links to the matching page.
+function CompactView({ data, phase, match, teamKey, now }) {
+  if (phase === PHASES.OFFDAY) {
+    const kickoff = match && Date.parse(match.date);
+    return (
+      <div className="wrexham-compact wrexham-compact-offday">
+        {match ? (
+          <>
+            <OpponentText
+              match={match}
+              teamKey={teamKey}
+              className="wrexham-compact-primary"
+            />
+            <p className="wrexham-compact-when">
+              <RelativeDay date={kickoff} now={now} />
+              <span aria-hidden="true"> · </span>
+              <span
+                className="wrexham-compact-when-time"
+                data-l10n-id="newtab-wrexham-widget-kickoff-time"
+                data-l10n-args={JSON.stringify({ date: kickoff })}
+              />
+            </p>
+          </>
+        ) : (
+          <p
+            className="wrexham-compact-when"
+            data-l10n-id="newtab-wrexham-widget-no-match"
+          />
+        )}
+        <CompactSummary data={data} teamKey={teamKey} />
+      </div>
     );
   }
   if (!match) {
@@ -555,10 +761,8 @@ function CompactView({ data, phase, match, teamKey, onLinkClick }) {
   }
   const hasScore = phase === PHASES.LIVE || phase === PHASES.FULLTIME;
   return (
-    <a
+    <div
       className={`wrexham-compact wrexham-compact-match wrexham-match-${phase}`}
-      href={getMatchLink(match)}
-      onClick={() => onLinkClick("match", "compact")}
     >
       <span className="wrexham-team-name wrexham-compact-home">
         {match.home_team?.name}
@@ -579,16 +783,16 @@ function CompactView({ data, phase, match, teamKey, onLinkClick }) {
         )}
         {phase === PHASES.PREMATCH && (
           <span
-            className="wrexham-kickoff-label"
-            data-l10n-id="newtab-wrexham-widget-kickoff-label"
+            className="wrexham-compact-date"
+            data-l10n-id="newtab-wrexham-widget-match-date"
+            data-l10n-args={JSON.stringify({ date: Date.parse(match.date) })}
           />
         )}
       </span>
       <span className="wrexham-team-name wrexham-compact-away">
         {match.away_team?.name}
       </span>
-      <span className="sr-only" data-l10n-id={MATCH_LINK_L10N_IDS[phase]} />
-    </a>
+    </div>
   );
 }
 
@@ -618,24 +822,18 @@ const Wrexham = ({
   const isLarge = widgetSize === "large";
 
   const teamKey = data?.team?.key;
-  const phase = getWrexhamPhase(data?.focus_match, Date.now());
+  const now = Date.now();
+  const phase = getWrexhamPhase(data?.focus_match, now);
   const match = getMatchForPhase(data, phase);
   const competitionName =
     (phase !== PHASES.OFFDAY && data?.focus_match?.competition?.name) ||
     data?.league?.name;
 
-  // The phase picks the tab until the user picks one or moves focus into the
-  // widget. After that the panel stays put for the life of the page, so a
-  // kickoff or final whistle doesn't swap it, or drop focus, under them.
+  // A tab the user picked stays for the life of the page, so a kickoff or
+  // final whistle never swaps the panel under them.
   const [selectedTab, setSelectedTab] = useState(null);
   const activeTab = selectedTab ?? getDefaultTab(phase);
   const tablistRef = useRef(null);
-
-  const pinActiveTab = () => {
-    if (selectedTab === null) {
-      setSelectedTab(activeTab);
-    }
-  };
 
   const { impressionRef, recordUserAction } = useWidgetTelemetry({
     dispatch,
@@ -727,6 +925,14 @@ const Wrexham = ({
     handleInteraction();
   };
 
+  // The match link: the next match's preview on other days, otherwise today's
+  // match page. The medium size always uses it.
+  const matchFooter = {
+    kind: "match",
+    href: getMatchLink(match),
+    l10nId: MATCH_LINK_L10N_IDS[phase],
+  };
+
   let panel;
   let footer;
   if (activeTab === TABS.TABLE) {
@@ -743,27 +949,32 @@ const Wrexham = ({
       l10nId: "newtab-wrexham-widget-link-table",
     };
   } else if (activeTab === TABS.FIXTURES) {
-    panel = <FixturesPanel gameweek={data?.gameweek} teamKey={teamKey} />;
+    panel = (
+      <FixturesPanel
+        gameweek={data?.gameweek}
+        teamKey={teamKey}
+        leagueName={data?.league?.name}
+      />
+    );
     footer = {
       kind: "fixtures",
       href: WREXHAM_LINKS.fixtures,
       l10nId: "newtab-wrexham-widget-link-fixtures",
     };
   } else {
-    panel = (
-      <MatchPanel
-        match={match}
-        phase={phase}
-        teamKey={teamKey}
-        standings={data?.standings}
-        leagueName={data?.league?.name}
-      />
-    );
-    footer = {
-      kind: "match",
-      href: getMatchLink(match),
-      l10nId: MATCH_LINK_L10N_IDS[phase],
-    };
+    panel =
+      phase === PHASES.OFFDAY ? (
+        <OffdayPanel data={data ?? {}} teamKey={teamKey} now={now} />
+      ) : (
+        <MatchPanel
+          match={match}
+          phase={phase}
+          teamKey={teamKey}
+          standings={data?.standings}
+          leagueName={data?.league?.name}
+        />
+      );
+    footer = matchFooter;
   }
 
   return (
@@ -771,7 +982,6 @@ const Wrexham = ({
       className={`wrexham widget col-4 ${widgetSize}-widget`}
       ref={impressionRef}
       aria-labelledby="wrexham-widget-label"
-      onFocus={pinActiveTab}
     >
       <header className="wrexham-header">
         <img className="wrexham-header-crest" src={CREST_URL} alt="" />
@@ -819,13 +1029,21 @@ const Wrexham = ({
       </header>
 
       {data && !isLarge && (
-        <CompactView
-          data={data}
-          phase={phase}
-          match={match}
-          teamKey={teamKey}
-          onLinkClick={handleLinkClick}
-        />
+        <>
+          <CompactView
+            data={data}
+            phase={phase}
+            match={match}
+            teamKey={teamKey}
+            now={now}
+          />
+          <a
+            className="wrexham-footer-link"
+            href={matchFooter.href}
+            onClick={() => handleLinkClick(matchFooter.kind, "compact")}
+            data-l10n-id={matchFooter.l10nId}
+          />
+        </>
       )}
 
       {data && isLarge && (

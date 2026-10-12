@@ -141,6 +141,16 @@ add_task(async function test_mock_data_shape() {
       ),
       `${scenario}: Wrexham play in the gameweek`
     );
+    Assert.equal(
+      data.last_match.status_type,
+      "past",
+      `${scenario}: the last match is finished`
+    );
+    Assert.equal(data.form.length, 5, `${scenario}: five results of form`);
+    Assert.ok(
+      data.form.every(result => ["win", "draw", "loss"].includes(result)),
+      `${scenario}: form is win, draw or loss`
+    );
   }
 
   const halftime = buildMockData("halftime", now).focus_match;

@@ -13,7 +13,7 @@
   --wrexham-on-red: white;
   --wrexham-accent: light-dark(#C8102E, #FF8A9C);
   --wrexham-font-size-xsmall: 0.8rem;
-  --wrexham-tab-indicator-width: 2px;
+  --wrexham-tab-indicator-width: 3px;
 
   // One property per visual job, so the contrast modes below can each be
   // overridden here without touching the element rules.
@@ -27,7 +27,6 @@
   --wrexham-tab-indicator-color: var(--wrexham-accent);
   // Has a unit because it is subtracted in calc().
   --wrexham-tab-border-width: 0px;
-  --wrexham-compact-text-color: var(--text-color);
   --wrexham-divider-color: var(--border-color);
   --wrexham-divider-width: 2px;
   // The card colour is translucent; layer it over the page colour so rows
@@ -69,7 +68,6 @@
     --wrexham-highlight-text-color: var(--text-color-accent-primary-selected);
     --wrexham-accent-text-color: var(--text-color);
     --wrexham-link-color: var(--link-color);
-    --wrexham-compact-text-color: var(--link-color);
     --wrexham-tab-indicator-color: var(--border-color-selected);
     --wrexham-table-header-background: var(--background-color-canvas);
     --wrexham-matchday-badge-background: var(--background-color-canvas);
@@ -119,12 +117,18 @@
 }
 
 .wrexham-header-crest {
-  block-size: var(--size-item-large);
+  block-size: var(--size-item-medium);
   flex: none;
 }
 
+// Title and competition share one line when there's room, and the competition
+// wraps underneath when a status badge takes the space.
 .wrexham-heading {
+  align-items: baseline;
+  column-gap: var(--space-small);
+  display: flex;
   flex: 1;
+  flex-wrap: wrap;
   min-inline-size: 0;
 }
 
@@ -233,7 +237,9 @@
   border: var(--wrexham-tab-border-width) solid currentColor;
   color: var(--text-color-deemphasized);
   flex: 1;
-  font-size: var(--font-size-small);
+  font-size: var(--font-size-root);
+  // At least a 32px touch target.
+  min-block-size: var(--size-item-large);
   padding-block: var(--space-xsmall) calc(var(--space-xsmall) + var(--wrexham-tab-indicator-width) - var(--wrexham-tab-border-width));
   padding-inline: 0;
 
@@ -453,6 +459,79 @@
   margin: 0;
 }
 
+// Match tab on days without a match: a label column and a content column.
+.wrexham-offday {
+  align-items: center;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  row-gap: var(--space-xsmall);
+}
+
+.wrexham-offday-label {
+  color: var(--text-color-deemphasized);
+  font-size: var(--wrexham-font-size-xsmall);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  padding-inline-end: var(--space-small);
+  text-transform: uppercase;
+}
+
+.wrexham-offday-row {
+  align-items: center;
+  display: flex;
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  gap: var(--space-small);
+  margin: 0;
+}
+
+// A rule above the next match, across both columns.
+.wrexham-offday-next-label,
+.wrexham-offday-next {
+  align-self: stretch;
+  border-block-start: var(--border-width) solid var(--border-color-deemphasized);
+  margin-block-start: var(--space-xxsmall);
+  padding-block-start: var(--space-small);
+}
+
+.wrexham-offday-next {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxsmall);
+  margin-block-end: 0;
+}
+
+.wrexham-offday-opponent {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+}
+
+.wrexham-offday-when {
+  color: var(--text-color-deemphasized);
+  font-size: var(--wrexham-font-size-xsmall);
+}
+
+.wrexham-offday-time {
+  color: var(--wrexham-accent-text-color);
+  font-size: var(--font-size-xlarge);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.wrexham-form {
+  display: flex;
+  gap: var(--space-xsmall);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wrexham-form-chip {
+  inline-size: 1.75em;
+  padding-inline: 0;
+  text-align: center;
+}
+
 .wrexham-goals {
   border-block-start: var(--border-width) solid var(--border-color-deemphasized);
   color: var(--text-color-deemphasized);
@@ -469,7 +548,7 @@
   }
 }
 
-// Table tab, and the medium size's slice of it
+// Table tab
 
 .wrexham-table {
   border-collapse: collapse;
@@ -562,14 +641,25 @@
   padding: var(--space-xsmall) var(--space-small);
 }
 
+// Matches the highlighted table row.
 .wrexham-fixture-highlight {
   background-color: var(--wrexham-highlight-background);
-  border-radius: var(--border-radius-small);
   color: var(--wrexham-highlight-text-color);
   font-weight: var(--font-weight-bold);
 
   .wrexham-fixture-time {
     color: inherit;
+  }
+}
+
+.wrexham-fixtures-others summary {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-small) var(--space-xsmall);
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-inset);
   }
 }
 
@@ -588,15 +678,8 @@
 // Medium size
 
 .wrexham-compact {
-  color: var(--wrexham-compact-text-color);
   flex: 1;
   min-block-size: 0;
-  text-decoration: none;
-
-  &:focus-visible {
-    outline: var(--focus-outline);
-    outline-offset: var(--focus-outline-inset);
-  }
 }
 
 .wrexham-compact-match {
@@ -604,11 +687,45 @@
   display: grid;
   gap: var(--space-small);
   grid-template-columns: 1fr auto 1fr;
-  padding: var(--space-small) var(--space-medium);
+  padding: var(--space-xsmall) var(--space-medium);
 
   .wrexham-score {
     font-size: var(--font-size-xxlarge);
   }
+}
+
+.wrexham-compact-date {
+  color: var(--text-color-deemphasized);
+  font-size: var(--wrexham-font-size-xsmall);
+  white-space: nowrap;
+}
+
+.wrexham-compact-offday {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxsmall);
+  justify-content: center;
+  padding: var(--space-xsmall) var(--space-medium);
+}
+
+.wrexham-compact-primary {
+  font-weight: var(--font-weight-semibold);
+}
+
+.wrexham-compact-when {
+  font-size: var(--font-size-small);
+  margin: 0;
+}
+
+.wrexham-compact-when-time {
+  color: var(--wrexham-accent-text-color);
+  font-weight: var(--font-weight-bold);
+}
+
+.wrexham-compact-secondary {
+  color: var(--text-color-deemphasized);
+  font-size: var(--wrexham-font-size-xsmall);
+  margin: 0;
 }
 
 .wrexham-compact-home {
@@ -626,14 +743,3 @@
   line-height: 1;
 }
 
-.wrexham-compact-table {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  // Keeps the inset focus ring off the highlighted row.
-  padding-inline: var(--space-xsmall);
-
-  .wrexham-table thead {
-    display: none;
-  }
-}

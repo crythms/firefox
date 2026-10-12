@@ -115,13 +115,69 @@ export function getWrexhamPhase(match, now) {
 }
 
 /**
- * The tab the widget opens on: the match on matchday, the table otherwise.
+ * The tab the widget opens on. The Match tab leads in every phase: on matchday
+ * it has the match, on other days the last result, form and next match.
  *
- * @param {string} phase - One of PHASES.
+ * @param {string} _phase - One of PHASES.
  * @returns {string} One of TABS.
  */
-export function getDefaultTab(phase) {
-  return phase === PHASES.OFFDAY ? TABS.TABLE : TABS.MATCH;
+export function getDefaultTab(_phase) {
+  return TABS.MATCH;
+}
+
+/**
+ * Whole calendar days from today to a date, in the fan's own time zone: 0 for
+ * later today, 1 for tomorrow.
+ *
+ * @param {number} date - A ms epoch.
+ * @param {number} now - The current time, as a ms epoch.
+ * @returns {number}
+ */
+export function getDaysUntil(date, now) {
+  const startOfDay = ms => new Date(ms).setHours(0, 0, 0, 0);
+  // Rounded so a day with a clock change still counts as one.
+  return Math.round(
+    (startOfDay(date) - startOfDay(now)) / (24 * 60 * 60 * 1000)
+  );
+}
+
+/**
+ * The other team in one of a team's matches, and whether that team was at
+ * home.
+ *
+ * @param {object} match
+ * @param {string} teamKey
+ * @returns {{opponent: object, isHome: boolean}|null}
+ */
+export function getOpponent(match, teamKey) {
+  if (match?.home_team?.key === teamKey) {
+    return { opponent: match.away_team, isHome: true };
+  }
+  if (match?.away_team?.key === teamKey) {
+    return { opponent: match.home_team, isHome: false };
+  }
+  return null;
+}
+
+/**
+ * A match's score from one team's side.
+ *
+ * @param {object} match
+ * @param {string} teamKey
+ * @returns {{ours: number, theirs: number}|null}
+ */
+export function getScoreForTeam(match, teamKey) {
+  const side = getOpponent(match, teamKey);
+  if (
+    !side ||
+    !Number.isFinite(match.home_score) ||
+    !Number.isFinite(match.away_score)
+  ) {
+    return null;
+  }
+  return side.isHome
+    ? { ours: match.home_score, theirs: match.away_score }
+    : { ours: match.away_score, theirs: match.home_score };
 }
 
 /**
