@@ -8,16 +8,14 @@ import {
   getDaysUntil,
   getMatchClock,
   getMatchForPhase,
-  getMinutesSinceUpdate,
+  getMatchState,
+  getPenalties,
   getMonogramColors,
-  getOpponent,
-  getPositionChange,
   getResultForTeam,
   getRowMovement,
-  getScoreForTeam,
   getTableZone,
-  getTeamEvents,
   getWrexhamPhase,
+  isExtraTime,
   isHalfTime,
 } from "content-src/components/Widgets/Wrexham/wrexhamPhase.mjs";
 
@@ -105,8 +103,8 @@ describe("getWrexhamPhase", () => {
     expect(getWrexhamPhase(finished, localTime(11, 2))).toBe(PHASES.FULLTIME);
   });
 
-  it("is an off day when a scheduled match is postponed or cancelled", () => {
-    for (const status of ["Postponed", "Canceled", "Cancelled"]) {
+  it("is an off day when a scheduled match is cancelled", () => {
+    for (const status of ["Canceled", "Cancelled"]) {
       expect(
         getWrexhamPhase(
           match({ status_type: "scheduled", status }),
@@ -114,6 +112,12 @@ describe("getWrexhamPhase", () => {
         )
       ).toBe(PHASES.OFFDAY);
     }
+  });
+
+  it("keeps a postponed match on its own day", () => {
+    const postponed = match({ status_type: "scheduled", status: "Postponed" });
+    expect(getWrexhamPhase(postponed, localTime(10, 12))).toBe(PHASES.PREMATCH);
+    expect(getWrexhamPhase(postponed, localTime(11, 12))).toBe(PHASES.OFFDAY);
   });
 
   it("keeps a delayed kickoff on matchday", () => {
@@ -194,52 +198,6 @@ describe("getCountdown", () => {
   });
 });
 
-describe("getMinutesSinceUpdate", () => {
-  const now = localTime(10, 16);
-
-  it("counts whole minutes from the epoch-seconds update time", () => {
-    expect(getMinutesSinceUpdate({ updated: now / 1000 - 150 }, now)).toBe(2);
-    expect(getMinutesSinceUpdate({ updated: now / 1000 }, now)).toBe(0);
-  });
-
-  it("treats an update stamped slightly ahead of the clock as just now", () => {
-    expect(getMinutesSinceUpdate({ updated: now / 1000 + 20 }, now)).toBe(0);
-  });
-
-  it("is null without an update time", () => {
-    expect(getMinutesSinceUpdate({ updated: null }, now)).toBeNull();
-    expect(getMinutesSinceUpdate(null, now)).toBeNull();
-  });
-});
-
-describe("getTeamEvents", () => {
-  const events = match({
-    goals: [
-      { team_key: "WRE", player: "A", minute: 45, minute_extra: 2 },
-      { team_key: "DER", player: "B", minute: 30, type: "penalty" },
-      { team_key: "WRE", player: "C", minute: 12, type: "own_goal" },
-      { team_key: "WRE", player: "D", minute: 46 },
-    ],
-    red_cards: [{ team_key: "WRE", player: "E", minute: 45 }],
-  });
-
-  it("merges a team's goals and red cards in the order they happened", () => {
-    expect(
-      getTeamEvents(events, "WRE").map(event => [event.kind, event.player])
-    ).toEqual([
-      ["goal", "C"],
-      ["red_card", "E"],
-      ["goal", "A"],
-      ["goal", "D"],
-    ]);
-  });
-
-  it("is empty when the match has no goals or cards", () => {
-    expect(getTeamEvents(match({}), "WRE")).toEqual([]);
-    expect(getTeamEvents(null, "WRE")).toEqual([]);
-  });
-});
-
 describe("getDaysUntil", () => {
   it("counts calendar days in the fan's time zone", () => {
     expect(getDaysUntil(localTime(10, 23, 59), localTime(10, 0, 1))).toBe(0);
@@ -252,41 +210,11 @@ describe("getDaysUntil", () => {
   });
 });
 
-describe("getOpponent", () => {
-  it("names the other team and whether it was a home match", () => {
-    const fixture = match();
-    expect(getOpponent(fixture, "WRE")).toEqual({
-      opponent: { key: "DER" },
-      isHome: false,
-    });
-    expect(getOpponent(fixture, "DER")).toEqual({
-      opponent: { key: "WRE" },
-      isHome: true,
-    });
-    expect(getOpponent(fixture, "MID")).toBeNull();
-  });
-});
-
-describe("getScoreForTeam", () => {
-  it("puts the team's own goals first", () => {
-    const scored = match({ home_score: 1, away_score: 2 });
-    expect(getScoreForTeam(scored, "WRE")).toEqual({ ours: 2, theirs: 1 });
-    expect(getScoreForTeam(scored, "DER")).toEqual({ ours: 1, theirs: 2 });
-  });
-
-  it("is null before kickoff or for a team that didn't play", () => {
-    expect(getScoreForTeam(match(), "WRE")).toBeNull();
-    expect(
-      getScoreForTeam(match({ home_score: 1, away_score: 0 }), "MID")
-    ).toBeNull();
-  });
-});
-
 describe("getMatchForPhase", () => {
-  const data = { focus_match: { id: 1 }, next_match: { id: 2 } };
+  const data = { focus_match: { id: 1 }, upcoming: [{ id: 2 }, { id: 3 }] };
 
   it("shows the next match on an off day", () => {
-    expect(getMatchForPhase(data, PHASES.OFFDAY)).toBe(data.next_match);
+    expect(getMatchForPhase(data, PHASES.OFFDAY)).toBe(data.upcoming[0]);
   });
 
   it("shows today's match on matchday", () => {
@@ -298,7 +226,58 @@ describe("getMatchForPhase", () => {
   });
 });
 
+describe("getMatchState", () => {
+  it("labels delays and postponements before kickoff", () => {
+    expect(getMatchState(match({ status: "Delayed" }), PHASES.PREMATCH)).toBe(
+      "delayed"
+    );
+    expect(getMatchState(match({ status: "Postponed" }), PHASES.PREMATCH)).toBe(
+      "postponed"
+    );
+    expect(getMatchState(match(), PHASES.PREMATCH)).toBeNull();
+    expect(getMatchState(match(), PHASES.OFFDAY)).toBeNull();
+  });
+
+  it("labels a match under way or finished", () => {
+    expect(getMatchState(match({ status: "In Progress" }), PHASES.LIVE)).toBe(
+      "live"
+    );
+    expect(getMatchState(match({ status: "Break" }), PHASES.LIVE)).toBe(
+      "halftime"
+    );
+    expect(getMatchState(match({ status: "Suspended" }), PHASES.LIVE)).toBe(
+      "suspended"
+    );
+    expect(getMatchState(match(), PHASES.FULLTIME)).toBe("fulltime");
+  });
+});
+
+describe("cup ties", () => {
+  it("spots extra time from the period", () => {
+    expect(isExtraTime(match({ period: "ET" }))).toBe(true);
+    expect(isExtraTime(match({ period: "2" }))).toBe(false);
+  });
+
+  it("reads the shootout score when there is one", () => {
+    expect(
+      getPenalties(match({ home_penalties: 3, away_penalties: 4 }))
+    ).toEqual({ home: 3, away: 4 });
+    expect(getPenalties(match())).toBeNull();
+  });
+});
+
 describe("getResultForTeam", () => {
+  it("decides a level match on penalties", () => {
+    const shootout = match({
+      home_score: 1,
+      away_score: 1,
+      home_penalties: 3,
+      away_penalties: 4,
+    });
+    expect(getResultForTeam(shootout, "WRE")).toBe("win");
+    expect(getResultForTeam(shootout, "DER")).toBe("loss");
+  });
+
   it("reads the result from the team's side", () => {
     const scored = match({ home_score: 1, away_score: 2 });
     expect(getResultForTeam(scored, "WRE")).toBe("win");
@@ -367,32 +346,5 @@ describe("getMonogramColors", () => {
     expect(
       getMonogramColors({ primary: "red", secondary: "#000000" })
     ).toBeNull();
-  });
-});
-
-describe("getPositionChange", () => {
-  const row = (position, previous_position) => ({
-    position,
-    previous_position,
-    team: { key: "WRE" },
-  });
-
-  it("says which way the team moved", () => {
-    expect(getPositionChange([row(6, 7)], "WRE")).toEqual({
-      position: 6,
-      direction: "up",
-    });
-    expect(getPositionChange([row(8, 7)], "WRE").direction).toBe("down");
-    expect(getPositionChange([row(7, 7)], "WRE").direction).toBe("same");
-  });
-
-  it("is null without a previous position to compare", () => {
-    expect(getPositionChange([row(6, undefined)], "WRE")).toBeNull();
-    expect(getPositionChange([row(6, null)], "WRE")).toBeNull();
-  });
-
-  it("is null when the team isn't in the table", () => {
-    expect(getPositionChange([row(1, 1)], "MID")).toBeNull();
-    expect(getPositionChange(undefined, "WRE")).toBeNull();
   });
 });

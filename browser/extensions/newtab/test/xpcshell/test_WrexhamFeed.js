@@ -120,3 +120,21 @@ add_task(async function test_unrelated_pref_is_ignored() {
   });
   Assert.equal(broadcasts(feed).length, 0, "No broadcast for other prefs");
 });
+
+add_task(async function test_failed_read_broadcasts_error() {
+  const feed = feedWithPrefs(enabledPrefs({ [PREF_MOCK_SCENARIO]: "error" }));
+  await feed.onAction({ type: actionTypes.INIT });
+  Assert.equal(broadcasts(feed).length, 0, "No data to send");
+  Assert.ok(
+    feed.store.dispatch
+      .getCalls()
+      .some(call => call.args[0].type === actionTypes.WIDGETS_WREXHAM_ERROR),
+    "Tells the page the read failed"
+  );
+});
+
+add_task(async function test_refresh_reads_again() {
+  const feed = feedWithPrefs(enabledPrefs());
+  await feed.onAction({ type: actionTypes.WIDGETS_WREXHAM_REFRESH });
+  Assert.equal(broadcasts(feed).length, 1, "Broadcast after a refresh");
+});

@@ -314,6 +314,8 @@ export const INITIAL_STATE = {
      * in lib/Widgets/WrexhamMockData.sys.mjs for the shape.
      */
     data: null,
+    // Whether the latest attempt to read the data failed.
+    error: false,
   },
 };
 
@@ -1302,7 +1304,9 @@ function RecentSearches(prevState = INITIAL_STATE.RecentSearches, action) {
 function Wrexham(prevState = INITIAL_STATE.Wrexham, action) {
   switch (action.type) {
     case at.WIDGETS_WREXHAM_UPDATE:
-      return { initialized: true, data: action.data };
+      return { initialized: true, data: action.data, error: false };
+    case at.WIDGETS_WREXHAM_ERROR:
+      return { ...prevState, initialized: true, error: true };
     default:
       return prevState;
   }

@@ -37,6 +37,20 @@ const TEAMS = {
   WBA: "West Bromwich Albion",
   WHU: "West Ham United",
   WOL: "Wolverhampton Wanderers",
+  WRE: "Wrexham AFC",
+};
+
+// The shorter names used where space is tight, for the clubs that have one.
+const SHORT_NAMES = {
+  BLB: "Blackburn",
+  DER: "Derby",
+  PNE: "Preston",
+  QPR: "QPR",
+  SHU: "Sheffield Utd",
+  SWA: "Swansea",
+  WBA: "West Brom",
+  WHU: "West Ham",
+  WOL: "Wolves",
   WRE: "Wrexham",
 };
 
@@ -68,22 +82,35 @@ const BASE_TABLE = [
   ["LEI", -11, 7],
 ];
 
-// The rest of the gameweek, as [home, away, ms offset from Wrexham's kickoff].
-const OTHER_FIXTURES = [
-  ["WHU", "QPR", -19 * HOUR - 15 * MINUTE],
-  ["SOU", "BUR", -2 * HOUR - 30 * MINUTE],
-  ["CHA", "BRC", 0],
-  ["SWA", "NOR", 0],
-  ["WBA", "BIR", 0],
-  ["SHU", "LIN", 0],
-  ["MID", "WOL", 0],
-  ["PNE", "MIL", 0],
-  ["HUL", "WAT", 0],
-  ["STK", "BLB", 2 * HOUR + 30 * MINUTE],
-  ["POR", "LEI", 21 * HOUR],
+const RACECOURSE = "Racecourse Ground";
+
+// Wrexham's last five results, oldest first, as [opponent, Wrexham at home,
+// days from now, Wrexham's goals, the opponent's goals].
+const RESULTS = [
+  ["WBA", true, -24, 0, 0],
+  ["MID", false, -17, 0, 2],
+  ["HUL", true, -14, 3, 1],
+  ["SWA", false, -10, 1, 1],
+  ["SOU", true, -3, 2, 1],
 ];
 
-const CHAMPIONSHIP = { key: "championship", name: "Championship" };
+// Wrexham's matches after Derby away, as [opponent, Wrexham at home, days
+// after the Derby match, kickoff hour in Wrexham].
+const LATER_FIXTURES = [
+  ["NOR", true, 8, 15],
+  ["MIL", false, 11, 19],
+  ["STK", true, 15, 15],
+  ["QPR", false, 22, 15],
+];
+
+const CHAMPIONSHIP = { key: "championship", name: "EFL Championship" };
+
+// The extra time and penalties scenarios: a one-off match that isn't part of
+// the league, which can go to extra time and penalties.
+const PLAY_OFF_FINAL = {
+  key: "championship-play-off-final",
+  name: "Championship Play-off Final",
+};
 
 // Only the opponent's badge shows club colours.
 const TEAM_COLORS = {
@@ -91,8 +118,14 @@ const TEAM_COLORS = {
 };
 
 function team(key) {
-  const colors = TEAM_COLORS[key];
-  return colors ? { key, name: TEAMS[key], colors } : { key, name: TEAMS[key] };
+  const result = { key, name: TEAMS[key] };
+  if (SHORT_NAMES[key]) {
+    result.short_name = SHORT_NAMES[key];
+  }
+  if (TEAM_COLORS[key]) {
+    result.colors = TEAM_COLORS[key];
+  }
+  return result;
 }
 
 function iso(ms) {
@@ -134,21 +167,22 @@ function buildMatch({
   away,
   kickoff,
   venue = null,
+  competition = CHAMPIONSHIP,
   status_type = "scheduled",
   status = "Scheduled",
   period = null,
   clock = null,
   home_score = null,
   away_score = null,
-  goals = [],
-  red_cards = [],
+  home_penalties = null,
+  away_penalties = null,
   updated = null,
 }) {
   return {
     id,
     date: iso(kickoff),
     venue,
-    competition: CHAMPIONSHIP,
+    competition,
     status_type,
     status,
     period,
@@ -157,8 +191,8 @@ function buildMatch({
     away_team: team(away),
     home_score,
     away_score,
-    goals,
-    red_cards,
+    home_penalties,
+    away_penalties,
     ended_at: null,
     updated,
     url: null,
@@ -196,15 +230,43 @@ function buildStandings({ wrexhamWon }) {
   }));
 }
 
-function buildGameweek(wrexhamMatch) {
-  const kickoff = Date.parse(wrexhamMatch.date);
-  const others = OTHER_FIXTURES.map(([home, away, offset], index) =>
-    buildMatch({ id: 1200 + index, home, away, kickoff: kickoff + offset })
+function wrexhamMatch({ opponent, home, venue, ...fields }) {
+  return buildMatch({
+    ...fields,
+    home: home ? WREXHAM_KEY : opponent,
+    away: home ? opponent : WREXHAM_KEY,
+    venue: venue ?? (home ? RACECOURSE : null),
+  });
+}
+
+function buildResults(now) {
+  return RESULTS.map(([opponent, home, days, ours, theirs], index) => {
+    const kickoff = wrexhamWallClock(now, days, 15);
+    return wrexhamMatch({
+      id: 1190 + index,
+      opponent,
+      home,
+      kickoff,
+      status_type: "past",
+      status: "Final",
+      period: "FT",
+      home_score: home ? ours : theirs,
+      away_score: home ? theirs : ours,
+      updated: epochSeconds(kickoff + 115 * MINUTE),
+    });
+  });
+}
+
+function buildLaterFixtures(derby) {
+  const derbyKickoff = Date.parse(derby.date);
+  return LATER_FIXTURES.map(([opponent, home, days, hour], index) =>
+    wrexhamMatch({
+      id: 1300 + index,
+      opponent,
+      home,
+      kickoff: wrexhamWallClock(derbyKickoff, days, hour),
+    })
   );
-  const matches = [...others, wrexhamMatch].sort(
-    (a, b) => Date.parse(a.date) - Date.parse(b.date)
-  );
-  return { number: 12, matches };
 }
 
 // The "minimal" scenario: every field the contract marks optional is left out.
@@ -215,77 +277,116 @@ function withoutOptionalFields(data) {
     home_team: plainTeam(match.home_team),
     away_team: plainTeam(match.away_team),
   });
-  const focus = plainMatch(data.focus_match);
   return {
     ...data,
-    focus_match: focus,
-    next_match: focus,
-    last_match: null,
-    form: [],
+    team: plainTeam(data.team),
+    focus_match: plainMatch(data.focus_match),
+    results: [],
+    upcoming: data.upcoming.map(plainMatch),
     standings: data.standings.map(
-      ({ previous_position: _previous, ...row }) => row
+      ({ previous_position: _previous, team: rowTeam, ...row }) => ({
+        ...row,
+        team: plainTeam(rowTeam),
+      })
     ),
-    gameweek: {
-      ...data.gameweek,
-      matches: data.gameweek.matches.map(match =>
-        match.id === focus.id ? focus : plainMatch(match)
-      ),
-    },
   };
 }
 
 /**
- * @param {string} scenario - prematch, live, halftime, fulltime, minimal (before
- *   kickoff, without optional fields) or offday (the default).
+ * @param {string} scenario - prematch, delayed, postponed, live, halftime,
+ *   suspended, extratime, fulltime, penalties, minimal (before kickoff, without
+ *   optional fields) or offday (the default).
  * @param {number} now - A ms epoch.
  * @returns {object} The data WrexhamFeed broadcasts as WIDGETS_WREXHAM_UPDATE.
  */
 export function buildMockData(scenario, now) {
   const derbyAway = {
     id: 1299,
-    home: "DER",
-    away: WREXHAM_KEY,
+    opponent: "DER",
+    home: false,
     venue: "Pride Park",
   };
-  // team_key is the team the goal counts for, so an own goal by a Derby
-  // player counts for Wrexham.
-  const derbyGoals = [
-    { team_key: WREXHAM_KEY, player: "J. Evans", minute: 12, type: null },
-    { team_key: "DER", player: "T. Clarke", minute: 34, type: "penalty" },
-    { team_key: WREXHAM_KEY, player: "M. Hart", minute: 58, type: "own_goal" },
-  ];
-  const derbyRedCards = [{ team_key: "DER", player: "K. Ward", minute: 63 }];
-
-  const lastKickoff = wrexhamWallClock(now, -3, 15);
-  const southamptonHome = buildMatch({
-    id: 1198,
-    home: WREXHAM_KEY,
-    away: "SOU",
-    venue: "Racecourse Ground",
-    kickoff: lastKickoff,
-    status_type: "past",
-    status: "Final",
-    period: "FT",
-    clock: "90+3",
-    home_score: 2,
-    away_score: 1,
-    goals: [],
-    updated: epochSeconds(lastKickoff + 115 * MINUTE),
-  });
-  // Oldest first.
-  const formBefore = ["draw", "loss", "win", "draw", "win"];
-
+  const playOffFinal = {
+    id: 1400,
+    opponent: "DER",
+    home: false,
+    venue: "Wembley Stadium",
+    competition: PLAY_OFF_FINAL,
+  };
+  let results = buildResults(now);
   let focus;
-  let next;
+  let upcoming;
   let wrexhamWon = false;
   switch (scenario) {
     case "prematch":
     case "minimal":
-      focus = buildMatch({ ...derbyAway, kickoff: laterToday(now) });
-      next = focus;
+      focus = wrexhamMatch({ ...derbyAway, kickoff: laterToday(now) });
+      upcoming = [focus, ...buildLaterFixtures(focus).slice(0, 3)];
+      break;
+    case "delayed":
+      focus = wrexhamMatch({
+        ...derbyAway,
+        kickoff: now - 10 * MINUTE,
+        status: "Delayed",
+      });
+      upcoming = [focus, ...buildLaterFixtures(focus).slice(0, 3)];
+      break;
+    case "postponed":
+      // A postponed match stays out of `upcoming` until it has a new date.
+      focus = wrexhamMatch({
+        ...derbyAway,
+        kickoff: laterToday(now),
+        status: "Postponed",
+      });
+      upcoming = buildLaterFixtures(focus).slice(0, 3);
+      break;
+    case "suspended":
+      focus = wrexhamMatch({
+        ...derbyAway,
+        kickoff: now - 75 * MINUTE,
+        status_type: "live",
+        status: "Suspended",
+        period: "2",
+        clock: "67",
+        home_score: 1,
+        away_score: 2,
+        updated: epochSeconds(now - 8 * MINUTE),
+      });
+      upcoming = buildLaterFixtures(focus);
+      break;
+    case "extratime":
+      focus = wrexhamMatch({
+        ...playOffFinal,
+        kickoff: now - 115 * MINUTE,
+        status_type: "live",
+        status: "In Progress",
+        period: "ET",
+        clock: "105",
+        home_score: 1,
+        away_score: 1,
+        updated: epochSeconds(now),
+      });
+      upcoming = buildLaterFixtures(focus);
+      break;
+    case "penalties":
+      focus = wrexhamMatch({
+        ...playOffFinal,
+        kickoff: now - 3 * HOUR,
+        status_type: "past",
+        status: "Final",
+        period: "FT(P)",
+        clock: "120",
+        home_score: 1,
+        away_score: 1,
+        home_penalties: 3,
+        away_penalties: 4,
+        updated: epochSeconds(now - 20 * MINUTE),
+      });
+      results = [...results.slice(1), focus];
+      upcoming = buildLaterFixtures(focus);
       break;
     case "live":
-      focus = buildMatch({
+      focus = wrexhamMatch({
         ...derbyAway,
         kickoff: now - 67 * MINUTE,
         status_type: "live",
@@ -294,14 +395,12 @@ export function buildMockData(scenario, now) {
         clock: "67",
         home_score: 1,
         away_score: 2,
-        goals: derbyGoals,
-        red_cards: derbyRedCards,
         updated: epochSeconds(now),
       });
-      next = focus;
+      upcoming = buildLaterFixtures(focus);
       break;
     case "halftime":
-      focus = buildMatch({
+      focus = wrexhamMatch({
         ...derbyAway,
         kickoff: now - 50 * MINUTE,
         status_type: "live",
@@ -310,13 +409,12 @@ export function buildMockData(scenario, now) {
         clock: "45+2",
         home_score: 1,
         away_score: 1,
-        goals: derbyGoals.slice(0, 2),
         updated: epochSeconds(now),
       });
-      next = focus;
+      upcoming = buildLaterFixtures(focus);
       break;
     case "fulltime":
-      focus = buildMatch({
+      focus = wrexhamMatch({
         ...derbyAway,
         kickoff: now - 2 * HOUR,
         status_type: "past",
@@ -325,31 +423,30 @@ export function buildMockData(scenario, now) {
         clock: "90+4",
         home_score: 1,
         away_score: 2,
-        goals: derbyGoals,
-        red_cards: derbyRedCards,
         updated: epochSeconds(now - 5 * MINUTE),
       });
-      next = null;
+      results = [...results.slice(1), focus];
+      upcoming = buildLaterFixtures(focus);
       wrexhamWon = true;
       break;
-    default:
-      focus = southamptonHome;
-      next = buildMatch({
+    default: {
+      const derby = wrexhamMatch({
         ...derbyAway,
         kickoff: wrexhamWallClock(now, 4, 15),
       });
+      focus = results.at(-1);
+      upcoming = [derby, ...buildLaterFixtures(derby).slice(0, 3)];
       break;
+    }
   }
 
   const data = {
     team: team(WREXHAM_KEY),
     league: CHAMPIONSHIP,
     focus_match: focus,
-    next_match: next,
-    last_match: wrexhamWon ? focus : southamptonHome,
-    form: wrexhamWon ? [...formBefore.slice(1), "win"] : formBefore,
+    results,
+    upcoming,
     standings: buildStandings({ wrexhamWon }),
-    gameweek: buildGameweek(scenario === "fulltime" ? focus : next),
   };
   return scenario === "minimal" ? withoutOptionalFields(data) : data;
 }

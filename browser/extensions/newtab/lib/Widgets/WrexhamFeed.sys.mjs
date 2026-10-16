@@ -47,6 +47,9 @@ export class WrexhamFeed {
   // Dummy data for now; this is where the Merino sports API call goes.
   async #fetchData() {
     const scenario = this.store.getState()?.Prefs.values[PREF_MOCK_SCENARIO];
+    if (scenario === "error") {
+      throw new Error("The error scenario never has data");
+    }
     return lazy.buildMockData(scenario, Date.now());
   }
 
@@ -56,6 +59,9 @@ export class WrexhamFeed {
       data = await this.#fetchData();
     } catch (error) {
       console.error("Wrexham widget failed to read its data", error);
+      this.store.dispatch(
+        ac.BroadcastToContent({ type: at.WIDGETS_WREXHAM_ERROR })
+      );
       return;
     }
     this.store.dispatch(
@@ -69,6 +75,11 @@ export class WrexhamFeed {
   async onAction(action) {
     switch (action.type) {
       case at.INIT:
+        if (this.enabled) {
+          await this.update();
+        }
+        break;
+      case at.WIDGETS_WREXHAM_REFRESH:
         if (this.enabled) {
           await this.update();
         }

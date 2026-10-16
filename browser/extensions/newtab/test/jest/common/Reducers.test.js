@@ -1332,7 +1332,14 @@ describe("Reducers", () => {
         type: at.WIDGETS_WREXHAM_UPDATE,
         data,
       });
-      expect(nextState).toEqual({ initialized: true, data });
+      expect(nextState).toEqual({ initialized: true, data, error: false });
+    });
+
+    it("WIDGETS_WREXHAM_ERROR keeps the last data and flags the error", () => {
+      const prev = { initialized: true, data: { team: {} }, error: false };
+      expect(
+        reducers.Wrexham(prev, { type: at.WIDGETS_WREXHAM_ERROR })
+      ).toEqual({ ...prev, error: true });
     });
   });
 
